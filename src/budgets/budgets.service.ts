@@ -10,7 +10,7 @@ import { BudgetDocument, BudgetPeriod } from './entities/budget.entity';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { TransactionsService } from '../transactions/transactions.service';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class BudgetsService {
@@ -37,7 +37,7 @@ export class BudgetsService {
       );
     }
 
-    const id = uuidv4();
+    const id = randomUUID();
     const now = new Date();
 
     const budget: Omit<BudgetDocument, 'id'> = {

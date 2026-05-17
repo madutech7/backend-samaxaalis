@@ -5,7 +5,7 @@ import { TransactionDocument, TransactionType } from './entities/transaction.ent
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { QueryTransactionDto } from './dto/query-transaction.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class TransactionsService {
@@ -19,7 +19,7 @@ export class TransactionsService {
     userId: string,
     dto: CreateTransactionDto,
   ): Promise<TransactionDocument> {
-    const id = uuidv4();
+    const id = randomUUID();
     const now = new Date();
 
     const transaction: Omit<TransactionDocument, 'id'> = {

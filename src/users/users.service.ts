@@ -3,7 +3,7 @@ import { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { UserDocument } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -34,7 +34,7 @@ export class UsersService {
   }
 
   async create(data: Partial<UserDocument>): Promise<UserDocument> {
-    const id = uuidv4();
+    const id = randomUUID();
     const now = new Date();
 
     const user: Omit<UserDocument, 'id'> = {
