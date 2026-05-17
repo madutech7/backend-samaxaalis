@@ -22,7 +22,20 @@ export class FirebaseModule {
             );
             let privateKey = configService.get<string>('FIREBASE_PRIVATE_KEY', '');
             if (privateKey) {
-              privateKey = privateKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+              // 1. Nettoyage basique (guillemets et sauts de ligne littéraux)
+              privateKey = privateKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n').trim();
+              
+              // 2. Si la clé a été aplatie sur une seule ligne (problème très fréquent avec les variables d'environnement Cloud)
+              if (!privateKey.includes('\n') && privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+                const match = privateKey.match(/(-----BEGIN PRIVATE KEY-----)(.+)(-----END PRIVATE KEY-----)/);
+                if (match) {
+                  // Nettoyer tous les espaces dans le corps de la clé
+                  const body = match[2].replace(/\s+/g, '');
+                  // Reconstruire le format PEM avec des lignes de 64 caractères
+                  const formattedBody = body.match(/.{1,64}/g)?.join('\n') || body;
+                  privateKey = `${match[1]}\n${formattedBody}\n${match[3]}`;
+                }
+              }
             }
             // If we have service account credentials, use them
             if (projectId && clientEmail && privateKey) {
