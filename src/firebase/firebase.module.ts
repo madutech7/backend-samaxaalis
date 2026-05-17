@@ -20,10 +20,10 @@ export class FirebaseModule {
             const clientEmail = configService.get<string>(
               'FIREBASE_CLIENT_EMAIL',
             );
-            const privateKey = configService
-              .get<string>('FIREBASE_PRIVATE_KEY', '')
-              .replace(/\\n/g, '\n');
-
+            let privateKey = configService.get<string>('FIREBASE_PRIVATE_KEY', '');
+            if (privateKey) {
+              privateKey = privateKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+            }
             // If we have service account credentials, use them
             if (projectId && clientEmail && privateKey) {
               return admin.initializeApp({
