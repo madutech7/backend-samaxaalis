@@ -22,19 +22,21 @@ export class FirebaseModule {
             );
             let privateKey = configService.get<string>('FIREBASE_PRIVATE_KEY', '');
             if (privateKey) {
-              // 1. Nettoyage basique (guillemets et sauts de ligne littéraux)
-              privateKey = privateKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n').trim();
+              // Enlever les guillemets éventuels
+              privateKey = privateKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
               
-              // 2. Si la clé a été aplatie sur une seule ligne (problème très fréquent avec les variables d'environnement Cloud)
-              if (!privateKey.includes('\n') && privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-                const match = privateKey.match(/(-----BEGIN PRIVATE KEY-----)(.+)(-----END PRIVATE KEY-----)/);
-                if (match) {
-                  // Nettoyer tous les espaces dans le corps de la clé
-                  const body = match[2].replace(/\s+/g, '');
-                  // Reconstruire le format PEM avec des lignes de 64 caractères
-                  const formattedBody = body.match(/.{1,64}/g)?.join('\n') || body;
-                  privateKey = `${match[1]}\n${formattedBody}\n${match[3]}`;
-                }
+              const beginMarker = '-----BEGIN PRIVATE KEY-----';
+              const endMarker = '-----END PRIVATE KEY-----';
+              
+              if (privateKey.includes(beginMarker) && privateKey.includes(endMarker)) {
+                // Extraire uniquement le corps de la clé
+                let body = privateKey.split(beginMarker)[1].split(endMarker)[0];
+                // Supprimer ABSOLUMENT tous les espaces, retours à la ligne, et tabulations du corps
+                body = body.replace(/\s+/g, '');
+                // Découper proprement en blocs de 64 caractères
+                const formattedBody = body.match(/.{1,64}/g)?.join('\n') || body;
+                // Reconstruire le certificat parfait
+                privateKey = `${beginMarker}\n${formattedBody}\n${endMarker}\n`;
               }
             }
             // If we have service account credentials, use them
