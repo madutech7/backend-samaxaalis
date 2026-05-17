@@ -8,7 +8,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Security
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+      crossOriginEmbedderPolicy: false,
+      frameguard: false,
+    }),
+  );
   app.enableCors({
     origin: '*', // Configure for production
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -50,6 +56,10 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT ?? 3000;
+  
+  // Rediriger la racine vers la documentation Swagger pour le frame Hugging Face
+  app.getHttpAdapter().get('/', (req, res) => res.redirect('/api/docs'));
+
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 GestFina API running on http://localhost:${port}`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);

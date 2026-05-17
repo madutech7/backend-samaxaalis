@@ -16,15 +16,6 @@ export class FirebaseModule {
           provide: FIREBASE_APP,
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => {
-            const base64ServiceAccount = configService.get<string>('FIREBASE_SERVICE_ACCOUNT_BASE64');
-            if (base64ServiceAccount) {
-              const decoded = Buffer.from(base64ServiceAccount, 'base64').toString('utf8');
-              const credentials = JSON.parse(decoded);
-              return admin.initializeApp({
-                credential: admin.credential.cert(credentials),
-              });
-            }
-
             const projectId = configService.get<string>('FIREBASE_PROJECT_ID');
             const clientEmail = configService.get<string>(
               'FIREBASE_CLIENT_EMAIL',
