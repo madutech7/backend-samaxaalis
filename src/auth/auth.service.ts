@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as admin from 'firebase-admin';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
@@ -176,11 +176,11 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
+        secret: this.configService.get<string>('JWT_SECRET') ?? 'default-gestfina-secret-key-fallback',
         expiresIn: accessExpiresIn as any,
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET') ?? 'default-gestfina-refresh-secret-key-fallback',
         expiresIn: refreshExpiresIn as any,
       }),
     ]);

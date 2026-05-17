@@ -15,7 +15,7 @@ import { UsersModule } from '../users/users.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>('JWT_SECRET') ?? 'default-gestfina-secret-key-fallback',
         signOptions: {
           expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ??
             '1d') as any,
