@@ -73,7 +73,7 @@ export class AiService {
   }
 
   /**
-   * Génère le texte de contexte financier pour l'utilisateur
+   * Génère le texte de contexte financier pour l'IA
    */
   private async buildFinancialContext(userId: string, currencyCode: string = 'EUR'): Promise<string> {
     const txResponse = await this.transactionsService.findAll(userId, { limit: 1000 });
@@ -117,6 +117,7 @@ export class AiService {
 
     const context = `
 === CONTEXTE FINANCIER DE L'UTILISATEUR ===
+- Solde Actuel : ${netSavings.toFixed(2)} ${symbol}
 - Total Revenus : ${totalIncome.toFixed(2)} ${symbol}
 - Total Dépenses : ${totalExpenses.toFixed(2)} ${symbol}
 - Épargne Nette : ${netSavings.toFixed(2)} ${symbol} (Taux d'épargne : ${savingsRate.toFixed(1)}%)
@@ -152,10 +153,11 @@ ${recentTxs.length > 0 ? recentTxs.join('\n') : 'Aucune transaction récente.'}
 Tu es SamaCoach, un conseiller financier IA bienveillant, motivant et expert.
 Analyse le contexte financier de l'utilisateur ci-dessous et produis un rapport structuré en français.
 
-Règles strictes de style Apple et de formatage :
-1. Il est extrêmement important de n'utiliser AUCUN émoji ou symbole superflu dans tes descriptions, tes résumés et tes conseils pour conserver un style sobre, épuré et professionnel de type Apple.
-2. Il est STRICTEMENT INTERDIT d'utiliser des étoiles (*) ou des doubles étoiles (**) pour mettre du texte en gras, en italique ou faire des listes. Produis uniquement du texte brut propre sans aucun symbole de mise en forme Markdown dans les chaînes de caractères.
-3. Toutes les valeurs financières, les montants, les résumés et les insights que tu rédiges doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}). Ne mentionne jamais l'euro (€) ou une autre devise si la devise de l'utilisateur est différente.
+Style et formatage :
+1. Sois chaleureux, encourageant et motivant. Utilise des émojis pertinents et professionnels (comme 💰, 📈, 📉, ⚠️, 💡, 🎯, 🚀) de manière élégante pour rendre le rapport vivant et agréable à lire.
+2. Pour les listes ou la mise en valeur, utilise des tirets (-) clairs et des sauts de ligne pour structurer ton texte. Évite d'utiliser des étoiles (*) ou des doubles étoiles (**) pour le gras ou l'italique car cela peut poser des problèmes d'affichage sur l'application mobile. Reste sur du texte brut propre aéré avec des émojis.
+3. Toutes les valeurs financières, les montants, les résumés et les insights que tu rédiges doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}).
+4. Mentionne explicitement le Solde Actuel de l'utilisateur dans ton résumé pour qu'il sache où il en est de manière claire et bienveillante.
 
 Données utilisateur :
 ${context}
@@ -163,7 +165,7 @@ ${context}
 Génère une réponse JSON strict selon ce schéma :
 {
   "financialScore": number (de 0 à 100, représentant la santé financière générale),
-  "summary": "string" (un court résumé global personnalisé et encourageant, 2-3 phrases, adressé à l'utilisateur directement, sans aucun balisage Markdown ni astérisques),
+  "summary": "string" (un court résumé global personnalisé et encourageant contenant le Solde Actuel de l'utilisateur, 2-3 phrases, adressé à l'utilisateur directement, sans aucun balisage Markdown ni astérisques),
   "savingsRateComment": "string" (une analyse du taux d'épargne de l'utilisateur avec conseils, sans aucun balisage Markdown ni astérisques),
   "insights": [
     { "title": "string", "description": "string", "type": "positive" | "negative" | "warning" }
@@ -179,6 +181,53 @@ Génère une réponse JSON strict selon ce schéma :
       this.logger.error('❌ Erreur lors de l\'appel à Gemini pour l\'analyse:', err);
       return this.generateMockAnalysis(context, symbol);
     }
+  }
+
+  /**
+   * Assure la conformité de l'historique pour le chat Gemini :
+   * 1. Ignore les messages d'accueil statiques (role 'model' au début).
+   * 2. Force l'alternance stricte des rôles (user -> model -> user -> model...).
+   * 3. Fusionne les messages consécutifs du même rôle si nécessaire.
+   */
+  private sanitizeHistory(history?: ChatMessageDto[]): { role: 'user' | 'model'; parts: { text: string }[] }[] {
+    if (!history || history.length === 0) {
+      return [];
+    }
+
+    const geminiHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    
+    // Normalisation des rôles
+    const rawHistory = history.map((msg) => ({
+      role: msg.role === 'user' ? 'user' as const : 'model' as const,
+      parts: [{ text: msg.content }],
+    }));
+
+    // Recherche du premier message 'user' car la session de chat Gemini doit obligatoirement démarrer par un message utilisateur
+    const firstUserIdx = rawHistory.findIndex((msg) => msg.role === 'user');
+    if (firstUserIdx === -1) {
+      return [];
+    }
+
+    let currentMsg: { role: 'user' | 'model'; parts: { text: string }[] } | null = null;
+
+    for (let i = firstUserIdx; i < rawHistory.length; i++) {
+      const item = rawHistory[i];
+      if (!currentMsg) {
+        currentMsg = { role: item.role, parts: [{ text: item.parts[0].text }] };
+      } else if (currentMsg.role === item.role) {
+        // En cas de messages consécutifs du même rôle, on fusionne leur contenu pour éviter une erreur d'alternance
+        currentMsg.parts[0].text += '\n' + item.parts[0].text;
+      } else {
+        geminiHistory.push(currentMsg);
+        currentMsg = { role: item.role, parts: [{ text: item.parts[0].text }] };
+      }
+    }
+
+    if (currentMsg) {
+      geminiHistory.push(currentMsg);
+    }
+
+    return geminiHistory;
   }
 
   /**
@@ -198,40 +247,49 @@ Génère une réponse JSON strict selon ce schéma :
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      // 10 Transactions Récentes et métriques globales
+      const soldeActuel = context.includes('Solde Actuel : ') 
+        ? context.split('Solde Actuel : ')[1].split('\n')[0].trim() 
+        : `non défini`;
 
-      // Convertir l'historique au format Gemini
-      const geminiHistory = (history ?? []).map((msg) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-      }));
-
-      // Insérer le contexte au départ
+      // Invite système de SamaCoach (avec configuration stricte anti-gras markdown et contexte actualisé)
       const systemInstruction = `
-Tu es SamaCoach, un coach en finances personnelles intelligent et chaleureux. 
+Tu es SamaCoach, un coach en finances personnelles intelligent, amical et très chaleureux. 
 Tu aides l'utilisateur à comprendre ses dépenses, optimiser ses budgets et épargner pour ses projets.
 Voici les données financières réelles de l'utilisateur pour éclairer tes réponses :
 ${context}
 
-Réponds de manière concise, structurée, constructive, chaleureuse et toujours en français.
 Considère ces données comme confidentielles et affiche de l'empathie.
+Réponds de manière concise, structurée, constructive, chaleureuse et toujours en français.
 
-Règles de style :
-1. Il est strictement interdit d'utiliser des émojis ou des symboles superflus dans tes réponses pour conserver un style sobre, haut de gamme et épuré de type Apple.
-2. Il est STRICTEMENT INTERDIT d'utiliser des étoiles (*) ou des doubles étoiles (**) pour mettre du texte en gras, en italique ou faire des listes. Produis uniquement du texte brut fluide, propre et lisible sans aucun balisage Markdown.
-3. Toutes les valeurs financières et montants mentionnés dans tes réponses doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}). N'utilise jamais l'euro (€) ou une autre devise si celle de l'utilisateur est différente.
+Style de communication et contraintes strictes :
+1. Sois amical, motivant et moderne. Utilise des émojis financiers et bienveillants (💰, 📈, 📉, ⚠️, 💡, 🎯, 🚀) pour rendre tes réponses vivantes et engageantes.
+2. Présente tes réponses de façon aérée. Utilise des sauts de lignes pour séparer tes paragraphes.
+3. INTERDICTION ABSOLUE D'UTILISER DES ASTÉRISQUES : N'utilise JAMAIS de caractères étoiles (*) ou doubles étoiles (**) pour mettre du texte en gras ou en italique. Toutes tes réponses doivent être écrites uniquement en texte brut non formaté, agréable à lire et parfaitement lisible. Utilise des tirets simples (-) pour structurer tes listes.
+4. Toutes les valeurs financières et montants mentionnés dans tes réponses doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}). N'utilise jamais l'euro (€) ou une autre devise si celle de l'utilisateur est différente.
+5. Lorsque l'utilisateur demande son solde, ses comptes ou sa situation financière, donne-lui immédiatement et clairement son Solde Actuel exact qui est de : ${soldeActuel}.
       `;
 
+      // Utilisation native de systemInstruction pour que Gemini applique les consignes à chaque tour de chat
+      const model = this.genAI.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        systemInstruction: systemInstruction,
+      });
+
+      // Assainissement de l'historique transmis par l'application mobile
+      const cleanedHistory = this.sanitizeHistory(history);
+
       const chatSession = model.startChat({
-        history: [
-          { role: 'user', parts: [{ text: `Système: Applique ces instructions pour toutes nos réponses futures:\n${systemInstruction}` }] },
-          { role: 'model', parts: [{ text: `Entendu. Je suis SamaCoach, votre coach financier. Je prends en compte votre situation financière actuelle pour vous guider au mieux en utilisant votre devise (${currencyCode}). Comment puis-je vous aider aujourd'hui ?` }] },
-          ...geminiHistory,
-        ],
+        history: cleanedHistory,
       });
 
       const result = await chatSession.sendMessage(message);
-      return result.response.text();
+      let replyText = result.response.text();
+
+      // Nettoyage de sécurité final pour enlever les astérisques markdown résiduels
+      replyText = replyText.replace(/\*\*?/g, '');
+
+      return replyText;
     } catch (err) {
       this.logger.error('❌ Erreur lors du chat avec Gemini:', err);
       return this.generateMockChatResponse(message, context, symbol);
@@ -244,28 +302,33 @@ Règles de style :
     this.logger.log('⚠️ Génération d\'une analyse simulée (mode fallback)...');
     
     // Extraction rapide de quelques données pour personnaliser le mock
+    const soldeStr = context.split('Solde Actuel : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+    const totalIncomeStr = context.split('Total Revenus : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+    const totalExpensesStr = context.split('Total Dépenses : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+    
+    const solde = parseFloat(soldeStr.replace(/[^\d.-]/g, '')) || 0;
     const hasHighExpenses = context.includes('Total Dépenses : ') && 
-      parseFloat(context.split('Total Dépenses : ')[1]) > parseFloat(context.split('Total Revenus : ')[1]) * 0.8;
+      parseFloat(totalExpensesStr.replace(/[^\d.-]/g, '')) > parseFloat(totalIncomeStr.replace(/[^\d.-]/g, '')) * 0.8;
     
     const rateStr = context.split('Taux d\'épargne : ')[1]?.split('%')[0] ?? '25';
     const rate = parseFloat(rateStr);
 
     let score = 75;
-    let summary = "Votre gestion budgétaire est saine ce mois-ci. Vous parvenez à maintenir un équilibre positif entre vos revenus et vos charges récurrentes.";
-    let rateComment = `Votre taux d'épargne se situe à ${rate.toFixed(1)}%. C'est un bon début qui respecte la règle d'or d'épargner au moins 10 à 20% de vos gains.`;
+    let summary = `Madu, votre solde actuel s'élève à ${soldeStr}. 💰 Votre gestion budgétaire est saine ce mois-ci et vous parvenez à maintenir un équilibre positif entre vos revenus et vos charges récurrentes.`;
+    let rateComment = `📈 Votre taux d'épargne se situe à ${rate.toFixed(1)}%. C'est un bon début qui respecte la règle d'or d'épargner au moins 10 à 20% de vos gains.`;
     
     const insights: AIInsight[] = [
       {
         title: "Suivi rigoureux",
-        description: "Vos transactions sont régulièrement saisies, ce qui fiabilise grandement vos prévisions budgétaires.",
+        description: `Vos transactions sont régulièrement saisies, ce qui fiabilise grandement vos prévisions budgétaires pour un solde de ${soldeStr}.`,
         type: "positive"
       }
     ];
 
     if (hasHighExpenses) {
       score = 58;
-      summary = "Attention Madu, vos dépenses récentes sont élevées par rapport à vos rentrées d'argent. Il serait judicieux de limiter vos sorties non indispensables pour le reste du mois.";
-      rateComment = `Avec un taux d'épargne de ${rate.toFixed(1)}%, votre marge de sécurité financière est mince. Essayez de constituer un fonds d'urgence plus solide.`;
+      summary = `Attention Madu, votre solde disponible est de ${soldeStr}. ⚠️ Vos dépenses récentes sont élevées par rapport à vos rentrées d'argent, limitez les sorties non indispensables.`;
+      rateComment = `📉 Avec un taux d'épargne de ${rate.toFixed(1)}%, votre marge de sécurité financière est mince. Essayez de constituer un fonds d'urgence plus solide.`;
       insights.push({
         title: "Alerte de surconsommation",
         description: "Le ratio dépenses/revenus dépasse les 80%. Vos budgets Shopping ou Loisirs mériteraient d'être temporairement réduits.",
@@ -309,19 +372,26 @@ Règles de style :
 
   private generateMockChatResponse(message: string, context: string, symbol: string = '€'): string {
     const msg = message.toLowerCase();
-    
-    if (msg.includes('ps5') || msg.includes('acheter') || msg.includes('achat')) {
-      return `Acheter un plaisir comme une PS5 dépend de vos priorités actuelles. \n\nEn analysant vos données : \n- Votre solde disponible et votre taux d'épargne ce mois-ci vous donnent une idée de votre reste à vivre.\n- Si vous avez déjà constitué un fonds d'urgence de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget Loisirs spécifique.\n- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes (Alimentation, Logement).`;
+    const soldeStr = context.split('Solde Actuel : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+    const totalIncomeStr = context.split('Total Revenus : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+    const totalExpensesStr = context.split('Total Dépenses : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+
+    if (msg.includes('solde') || msg.includes('argent') || msg.includes('compte') || msg.includes('combien') || msg.includes('avoir')) {
+      return `💰 Votre solde actuel s'élève à ${soldeStr}.\n\nVoici le résumé rapide de votre situation :\n- Total des Revenus : ${totalIncomeStr}\n- Total des Dépenses : ${totalExpensesStr}\n\nComment puis-je vous aider à optimiser ce budget aujourd'hui ?`;
     }
     
-    if (msg.includes('nourriture') || msg.includes('aliment') || msg.includes('manger')) {
-      return `Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :\n1. Le Batch Cooking : Préparez vos repas de la semaine le dimanche pour éviter d'acheter des plats à emporter coûteux le midi.\n2. Faites une liste stricte : N'allez jamais faire vos courses le ventre vide et tenez-vous rigoureusement à votre liste.\n3. Privilégiez les marques blanches pour les produits de base (pâtes, riz, produits d'entretien) où la différence de qualité est minime mais l'économie est de 30% en moyenne.`;
+    if (msg.includes('ps5') || msg.includes('acheter') || msg.includes('achat')) {
+      return `🛍️ Acheter un plaisir comme une PS5 dépend de vos priorités actuelles. \n\nEn analysant vos données : \n- Votre solde disponible de ${soldeStr} et votre taux d'épargne vous donnent une idée de votre reste à vivre.\n- Si vous avez déjà constitué un fonds d'urgence de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget Loisirs spécifique.\n- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes (Alimentation, Logement).`;
+    }
+    
+    if (msg.includes('nourriture') || msg.includes('aliment') || msg.includes('manger') || msg.includes('courses')) {
+      return `🥗 Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :\n- Le Batch Cooking : Préparez vos repas de la semaine le dimanche pour éviter d'acheter des plats à emporter coûteux le midi.\n- Faites une liste stricte : N'allez jamais faire vos courses le ventre vide et tenez-vous rigoureusement à votre liste.\n- Privilégiez les marques blanches pour les produits de base (pâtes, riz, produits d'entretien) où la différence de qualité est minime mais l'économie est de 30% en moyenne.`;
     }
 
     if (msg.includes('economi') || msg.includes('épargn') || msg.includes('réduire')) {
-      return `Pour augmenter votre taux d'épargne (actuellement reflété dans vos métriques globales), je vous suggère la méthode des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, alimentation).\n- 30% pour vos envies (sorties, shopping, loisirs).\n- 20% directement versés en épargne ou investissement dès le début du mois.\n\nSi vous souhaitez réduire vos charges, commencez par lister vos abonnements (streaming, salles de sport, applications) et résiliez ceux qui n'ont pas servi ces 30 derniers jours. C'est souvent 30 à 50 ${symbol} de gagnés immédiatement !`;
+      return `📈 Pour augmenter votre taux d'épargne (actuellement reflété dans vos métriques globales), je vous suggère la méthode des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, alimentation).\n- 30% pour vos envies (sorties, shopping, loisirs).\n- 20% directement versés en épargne ou investissement dès le début du mois.\n\nSi vous souhaitez réduire vos charges, commencez par lister vos abonnements (streaming, salles de sport, applications) et résiliez ceux qui n'ont pas servi ces 30 derniers jours. C'est souvent 30 à 50 ${symbol} de gagnés immédiatement !`;
     }
 
-    return `Bonjour ! En tant que votre coach financier SamaCoach, j'analyse en continu vos transactions pour vous conseiller. \n\nVotre question concerne un point budgétaire spécifique. N'hésitez pas à me demander des précisions sur :\n- Comment optimiser une catégorie (Alimentation, Shopping, etc.).\n- Si vous pouvez réaliser un achat important en ce moment.\n- Des explications sur les meilleures règles d'épargne personnelle.`;
+    return `Bonjour Madu ! 🤖 En tant que votre coach financier SamaCoach, j'analyse en continu vos transactions.\n\nVotre solde actuel est de ${soldeStr}.\n\nN'hésitez pas à me poser des questions sur :\n- Comment optimiser vos catégories de dépenses (Alimentation, Shopping, etc.).\n- Si vous pouvez réaliser un achat important en ce moment.\n- Des explications sur les meilleures règles d'épargne personnelle.`;
   }
 }
