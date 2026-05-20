@@ -38,6 +38,23 @@ export class TransactionsService {
     return { id, ...transaction };
   }
 
+  private async getUserTransactions(userId: string): Promise<TransactionDocument[]> {
+    const snapshot = await this.collection
+      .where('userId', '==', userId)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date ? (data.date.toDate ? data.date.toDate() : new Date(data.date)) : new Date(),
+        createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : new Date(),
+        updatedAt: data.updatedAt ? (data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)) : new Date(),
+      } as TransactionDocument;
+    });
+  }
+
   async findAll(userId: string, query: QueryTransactionDto) {
     const {
       type,
@@ -49,43 +66,26 @@ export class TransactionsService {
       limit = 20,
     } = query;
 
-    let ref: FirebaseFirestore.Query = this.collection.where(
-      'userId',
-      '==',
-      userId,
-    );
+    let data = await this.getUserTransactions(userId);
 
     if (type) {
-      ref = ref.where('type', '==', type);
+      data = data.filter((t) => t.type === type);
     }
 
     if (category) {
-      ref = ref.where('category', '==', category);
+      data = data.filter((t) => t.category === category);
     }
 
     if (startDate) {
-      ref = ref.where('date', '>=', new Date(startDate));
+      const start = new Date(startDate);
+      data = data.filter((t) => t.date >= start);
     }
 
     if (endDate) {
-      ref = ref.where('date', '<=', new Date(endDate));
+      const end = new Date(endDate);
+      data = data.filter((t) => t.date <= end);
     }
 
-    ref = ref.orderBy('date', 'desc');
-
-    // Get total count
-    const countSnapshot = await ref.count().get();
-    const total = countSnapshot.data().count;
-
-    // Paginate
-    const offset = (page - 1) * limit;
-    const snapshot = await ref.offset(offset).limit(limit).get();
-
-    let data = snapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() }) as TransactionDocument,
-    );
-
-    // Client-side search (Firestore doesn't support ILIKE)
     if (search) {
       const searchLower = search.toLowerCase();
       data = data.filter(
@@ -95,8 +95,15 @@ export class TransactionsService {
       );
     }
 
+    // Sort by date desc
+    data.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    const total = data.length;
+    const offset = (page - 1) * limit;
+    const paginated = data.slice(offset, offset + limit);
+
     return {
-      data,
+      data: paginated,
       meta: {
         total,
         page,
@@ -117,7 +124,13 @@ export class TransactionsService {
       throw new NotFoundException('Transaction non trouvée');
     }
 
-    return { id: doc.id, ...data };
+    return {
+      id: doc.id,
+      ...data,
+      date: data.date ? ((data.date as any).toDate ? (data.date as any).toDate() : new Date(data.date)) : new Date(),
+      createdAt: data.createdAt ? ((data.createdAt as any).toDate ? (data.createdAt as any).toDate() : new Date(data.createdAt)) : new Date(),
+      updatedAt: data.updatedAt ? ((data.updatedAt as any).toDate ? (data.updatedAt as any).toDate() : new Date(data.updatedAt)) : new Date(),
+    };
   }
 
   async update(
@@ -125,7 +138,8 @@ export class TransactionsService {
     id: string,
     dto: UpdateTransactionDto,
   ): Promise<TransactionDocument> {
-    const transaction = await this.findOne(userId, id);
+    await this.findOne(userId, id); // Verify ownership
+    
     const updates: Record<string, any> = {
       ...dto,
       updatedAt: new Date(),
@@ -135,7 +149,7 @@ export class TransactionsService {
     }
 
     await this.collection.doc(id).update(updates);
-    return { ...transaction, ...updates };
+    return this.findOne(userId, id);
   }
 
   async remove(userId: string, id: string): Promise<void> {
@@ -146,20 +160,15 @@ export class TransactionsService {
   // ─── Statistics helpers ──────────────────────────────────────────
 
   async getTotalBalance(userId: string): Promise<number> {
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     let balance = 0;
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      if (data.type === TransactionType.INCOME) {
-        balance += Number(data.amount);
+    data.forEach((t) => {
+      if (t.type === TransactionType.INCOME) {
+        balance += Number(t.amount);
       } else {
-        balance -= Number(data.amount);
+        balance -= Number(t.amount);
       }
     });
-
     return Math.round(balance * 100) / 100;
   }
 
@@ -168,21 +177,17 @@ export class TransactionsService {
     startDate: Date,
     endDate: Date,
   ): Promise<{ income: number; expenses: number }> {
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .where('date', '>=', startDate)
-      .where('date', '<=', endDate)
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     let income = 0;
     let expenses = 0;
 
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      if (data.type === TransactionType.INCOME) {
-        income += Number(data.amount);
-      } else {
-        expenses += Number(data.amount);
+    data.forEach((t) => {
+      if (t.date >= startDate && t.date <= endDate) {
+        if (t.type === TransactionType.INCOME) {
+          income += Number(t.amount);
+        } else {
+          expenses += Number(t.amount);
+        }
       }
     });
 
@@ -197,22 +202,16 @@ export class TransactionsService {
     startDate: Date,
     endDate: Date,
   ) {
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .where('type', '==', TransactionType.EXPENSE)
-      .where('date', '>=', startDate)
-      .where('date', '<=', endDate)
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     const categoryTotals: Record<string, number> = {};
     let total = 0;
 
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const amount = Number(data.amount);
-      categoryTotals[data.category] =
-        (categoryTotals[data.category] ?? 0) + amount;
-      total += amount;
+    data.forEach((t) => {
+      if (t.type === TransactionType.EXPENSE && t.date >= startDate && t.date <= endDate) {
+        const amount = Number(t.amount);
+        categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + amount;
+        total += amount;
+      }
     });
 
     return Object.entries(categoryTotals)
@@ -229,22 +228,16 @@ export class TransactionsService {
     startDate: Date,
     endDate: Date,
   ) {
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .where('type', '==', TransactionType.INCOME)
-      .where('date', '>=', startDate)
-      .where('date', '<=', endDate)
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     const categoryTotals: Record<string, number> = {};
     let total = 0;
 
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const amount = Number(data.amount);
-      categoryTotals[data.category] =
-        (categoryTotals[data.category] ?? 0) + amount;
-      total += amount;
+    data.forEach((t) => {
+      if (t.type === TransactionType.INCOME && t.date >= startDate && t.date <= endDate) {
+        const amount = Number(t.amount);
+        categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + amount;
+        total += amount;
+      }
     });
 
     return Object.entries(categoryTotals)
@@ -261,13 +254,7 @@ export class TransactionsService {
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .where('type', '==', TransactionType.EXPENSE)
-      .where('date', '>=', startDate)
-      .orderBy('date', 'asc')
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     const dailyTotals: Record<string, number> = {};
 
     // Initialize all days with 0
@@ -278,14 +265,12 @@ export class TransactionsService {
       dailyTotals[key] = 0;
     }
 
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const date = data.date.toDate
-        ? data.date.toDate()
-        : new Date(data.date);
-      const key = date.toISOString().split('T')[0];
-      if (dailyTotals[key] !== undefined) {
-        dailyTotals[key] += Number(data.amount);
+    data.forEach((t) => {
+      if (t.type === TransactionType.EXPENSE && t.date >= startDate) {
+        const key = t.date.toISOString().split('T')[0];
+        if (dailyTotals[key] !== undefined) {
+          dailyTotals[key] += Number(t.amount);
+        }
       }
     });
 
@@ -301,12 +286,7 @@ export class TransactionsService {
     startDate.setDate(1);
     startDate.setHours(0, 0, 0, 0);
 
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .where('date', '>=', startDate)
-      .orderBy('date', 'asc')
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     const monthlyData: Record<
       string,
       { income: number; expenses: number }
@@ -320,17 +300,15 @@ export class TransactionsService {
       monthlyData[key] = { income: 0, expenses: 0 };
     }
 
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const date = data.date.toDate
-        ? data.date.toDate()
-        : new Date(data.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      if (monthlyData[key]) {
-        if (data.type === TransactionType.INCOME) {
-          monthlyData[key].income += Number(data.amount);
-        } else {
-          monthlyData[key].expenses += Number(data.amount);
+    data.forEach((t) => {
+      if (t.date >= startDate) {
+        const key = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
+        if (monthlyData[key]) {
+          if (t.type === TransactionType.INCOME) {
+            monthlyData[key].income += Number(t.amount);
+          } else {
+            monthlyData[key].expenses += Number(t.amount);
+          }
         }
       }
     });
@@ -348,19 +326,16 @@ export class TransactionsService {
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
-    const snapshot = await this.collection
-      .where('userId', '==', userId)
-      .where('type', '==', TransactionType.EXPENSE)
-      .where('category', '==', category)
-      .where('date', '>=', startDate)
-      .where('date', '<=', endDate)
-      .get();
-
+    const data = await this.getUserTransactions(userId);
     let spent = 0;
-    snapshot.docs.forEach((doc) => {
-      spent += Number(doc.data().amount);
+
+    data.forEach((t) => {
+      if (t.type === TransactionType.EXPENSE && t.category === category && t.date >= startDate && t.date <= endDate) {
+        spent += Number(t.amount);
+      }
     });
 
     return Math.round(spent * 100) / 100;
   }
 }
+

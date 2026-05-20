@@ -54,15 +54,25 @@ export class BudgetsService {
     return { id, ...budget };
   }
 
+  private mapBudget(doc: FirebaseFirestore.DocumentSnapshot): BudgetDocument {
+    const data = doc.data() || {};
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : new Date(),
+      updatedAt: data.updatedAt ? (data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)) : new Date(),
+    } as BudgetDocument;
+  }
+
   async findAll(userId: string) {
     const snapshot = await this.collection
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
       .get();
 
-    const budgets = snapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() }) as BudgetDocument,
-    );
+    const budgets = snapshot.docs.map((doc) => this.mapBudget(doc));
+
+    // Sort in memory by createdAt desc
+    budgets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     // Enrich with progress
     const enriched = await Promise.all(
@@ -86,7 +96,7 @@ export class BudgetsService {
       throw new NotFoundException('Budget non trouvé');
     }
 
-    const budget = { id: doc.id, ...doc.data() } as BudgetDocument;
+    const budget = this.mapBudget(doc);
     if (budget.userId !== userId) {
       throw new NotFoundException('Budget non trouvé');
     }
@@ -105,36 +115,19 @@ export class BudgetsService {
     id: string,
     dto: UpdateBudgetDto,
   ): Promise<BudgetDocument> {
-    const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
-      throw new NotFoundException('Budget non trouvé');
-    }
-
-    const budget = { id: doc.id, ...doc.data() } as BudgetDocument;
-    if (budget.userId !== userId) {
-      throw new NotFoundException('Budget non trouvé');
-    }
-
+    await this.findOne(userId, id); // Verify ownership
+    
     const updates = {
       ...dto,
       updatedAt: new Date(),
     };
 
     await this.collection.doc(id).update(updates);
-    return { ...budget, ...updates };
+    return this.findOne(userId, id);
   }
 
   async remove(userId: string, id: string): Promise<void> {
-    const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
-      throw new NotFoundException('Budget non trouvé');
-    }
-
-    const budget = doc.data() as Omit<BudgetDocument, 'id'>;
-    if (budget.userId !== userId) {
-      throw new NotFoundException('Budget non trouvé');
-    }
-
+    await this.findOne(userId, id); // Verify ownership
     await this.collection.doc(id).delete();
   }
 
