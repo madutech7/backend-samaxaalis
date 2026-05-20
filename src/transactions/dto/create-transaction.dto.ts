@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsDateString,
+  IsUUID,
   Min,
   MaxLength,
 } from 'class-validator';
@@ -14,6 +15,10 @@ import {
 } from '../entities/transaction.entity';
 
 export class CreateTransactionDto {
+  @ApiPropertyOptional({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
+  @IsOptional()
+  @IsUUID()
+  id?: string;
   @ApiProperty({ example: 'Salaire mensuel' })
   @IsString()
   @MaxLength(255)

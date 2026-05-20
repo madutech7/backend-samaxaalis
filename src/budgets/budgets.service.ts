@@ -37,7 +37,7 @@ export class BudgetsService {
       );
     }
 
-    const id = randomUUID();
+    const id = dto.id ?? randomUUID();
     const now = new Date();
 
     const budget: Omit<BudgetDocument, 'id'> = {

@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { StatisticsModule } from './statistics/statistics.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { StatisticsModule } from './statistics/statistics.module';
     TransactionsModule,
     BudgetsModule,
     StatisticsModule,
+    AiModule,
   ],
   providers: [
     {

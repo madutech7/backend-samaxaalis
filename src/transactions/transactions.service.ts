@@ -19,7 +19,7 @@ export class TransactionsService {
     userId: string,
     dto: CreateTransactionDto,
   ): Promise<TransactionDocument> {
-    const id = randomUUID();
+    const id = dto.id ?? randomUUID();
     const now = new Date();
 
     const transaction: Omit<TransactionDocument, 'id'> = {
