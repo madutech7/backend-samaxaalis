@@ -26,4 +26,9 @@ export class ChatDto {
   @ValidateNested({ each: true })
   @Type(() => ChatMessageDto)
   history?: ChatMessageDto[];
+
+  @ApiPropertyOptional({ example: 'EUR' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
 }

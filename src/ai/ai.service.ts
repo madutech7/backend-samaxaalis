@@ -19,6 +19,34 @@ export interface AIAnalysisResponse {
   recommendations: string[];
 }
 
+function getCurrencySymbol(code: string): string {
+  const symbols: Record<string, string> = {
+    XOF: 'CFA',
+    XAF: 'FCFA',
+    EUR: '€',
+    USD: '$',
+    CAD: 'CA$',
+    GBP: '£',
+    CHF: 'CHF',
+    MAD: 'MAD',
+    DZD: 'DZD',
+    TND: 'TND',
+    EGP: 'EGP',
+    NGN: '₦',
+    GHS: 'GHS',
+    KES: 'KSh',
+    ZAR: 'R',
+    JPY: '¥',
+    CNY: '¥',
+    INR: '₹',
+    AUD: 'A$',
+    SGD: 'S$',
+    AED: 'AED',
+    SAR: 'SAR',
+  };
+  return symbols[code.toUpperCase()] ?? code;
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -47,10 +75,11 @@ export class AiService {
   /**
    * Génère le texte de contexte financier pour l'utilisateur
    */
-  private async buildFinancialContext(userId: string): Promise<string> {
+  private async buildFinancialContext(userId: string, currencyCode: string = 'EUR'): Promise<string> {
     const txResponse = await this.transactionsService.findAll(userId, { limit: 1000 });
     const transactions = txResponse.data;
     const budgets = await this.budgetsService.findAll(userId);
+    const symbol = getCurrencySymbol(currencyCode);
 
     // Calculer les métriques globales
     let totalIncome = 0;
@@ -76,7 +105,7 @@ export class AiService {
       const spent = categoryExpenses[b.category] ?? 0;
       const progress = b.limitAmount > 0 ? (spent / b.limitAmount) * 100 : 0;
       budgetLines.push(
-        `- Catégorie ${b.category} : budget de ${b.limitAmount} €, dépensé ${spent.toFixed(2)} € (${progress.toFixed(1)}% consommé)`,
+        `- Catégorie ${b.category} : budget de ${b.limitAmount} ${symbol}, dépensé ${spent.toFixed(2)} ${symbol} (${progress.toFixed(1)}% consommé)`,
       );
     }
 
@@ -84,13 +113,13 @@ export class AiService {
     const recentTxs = [...transactions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10)
-      .map((t) => `- ${new Date(t.date).toLocaleDateString('fr-FR')} | ${t.title} : ${t.type === 'income' ? '+' : '-'}${t.amount} € (${t.category})`);
+      .map((t) => `- ${new Date(t.date).toLocaleDateString('fr-FR')} | ${t.title} : ${t.type === 'income' ? '+' : '-'}${t.amount} ${symbol} (${t.category})`);
 
     const context = `
 === CONTEXTE FINANCIER DE L'UTILISATEUR ===
-- Total Revenus : ${totalIncome.toFixed(2)} €
-- Total Dépenses : ${totalExpenses.toFixed(2)} €
-- Épargne Nette : ${netSavings.toFixed(2)} € (Taux d'épargne : ${savingsRate.toFixed(1)}%)
+- Total Revenus : ${totalIncome.toFixed(2)} ${symbol}
+- Total Dépenses : ${totalExpenses.toFixed(2)} ${symbol}
+- Épargne Nette : ${netSavings.toFixed(2)} ${symbol} (Taux d'épargne : ${savingsRate.toFixed(1)}%)
 - Budgets Définis :
 ${budgetLines.length > 0 ? budgetLines.join('\n') : 'Aucun budget configuré.'}
 
@@ -105,11 +134,12 @@ ${recentTxs.length > 0 ? recentTxs.join('\n') : 'Aucune transaction récente.'}
   /**
    * Génère l'analyse de santé financière (Dashboard Coach)
    */
-  async generateAnalysis(userId: string): Promise<AIAnalysisResponse> {
-    const context = await this.buildFinancialContext(userId);
+  async generateAnalysis(userId: string, currencyCode: string = 'EUR'): Promise<AIAnalysisResponse> {
+    const context = await this.buildFinancialContext(userId, currencyCode);
+    const symbol = getCurrencySymbol(currencyCode);
 
     if (!this.genAI) {
-      return this.generateMockAnalysis(context);
+      return this.generateMockAnalysis(context, symbol);
     }
 
     try {
@@ -121,19 +151,24 @@ ${recentTxs.length > 0 ? recentTxs.join('\n') : 'Aucune transaction récente.'}
       const prompt = `
 Tu es SamaCoach, un conseiller financier IA bienveillant, motivant et expert.
 Analyse le contexte financier de l'utilisateur ci-dessous et produis un rapport structuré en français.
-Il est extrêmement important de n'utiliser AUCUN émoji ou symbole superflu dans tes descriptions, tes résumés et tes conseils pour conserver un style sobre, épuré et professionnel de type Apple.
 
+Règles strictes de style Apple et de formatage :
+1. Il est extrêmement important de n'utiliser AUCUN émoji ou symbole superflu dans tes descriptions, tes résumés et tes conseils pour conserver un style sobre, épuré et professionnel de type Apple.
+2. Il est STRICTEMENT INTERDIT d'utiliser des étoiles (*) ou des doubles étoiles (**) pour mettre du texte en gras, en italique ou faire des listes. Produis uniquement du texte brut propre sans aucun symbole de mise en forme Markdown dans les chaînes de caractères.
+3. Toutes les valeurs financières, les montants, les résumés et les insights que tu rédiges doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}). Ne mentionne jamais l'euro (€) ou une autre devise si la devise de l'utilisateur est différente.
+
+Données utilisateur :
 ${context}
 
 Génère une réponse JSON strict selon ce schéma :
 {
   "financialScore": number (de 0 à 100, représentant la santé financière générale),
-  "summary": "string" (un court résumé global personnalisé et encourageant, 2-3 phrases, adressé à l'utilisateur directement),
-  "savingsRateComment": "string" (une analyse du taux d'épargne de l'utilisateur avec conseils),
+  "summary": "string" (un court résumé global personnalisé et encourageant, 2-3 phrases, adressé à l'utilisateur directement, sans aucun balisage Markdown ni astérisques),
+  "savingsRateComment": "string" (une analyse du taux d'épargne de l'utilisateur avec conseils, sans aucun balisage Markdown ni astérisques),
   "insights": [
     { "title": "string", "description": "string", "type": "positive" | "negative" | "warning" }
-  ] (maximum 3 insights clés basés sur les budgets ou transactions),
-  "recommendations": ["string"] (exactement 3 conseils spécifiques et actionnables pour optimiser ses finances)
+  ] (maximum 3 insights clés basés sur les budgets ou transactions, sans aucun balisage Markdown ni astérisques),
+  "recommendations": ["string"] (exactement 3 conseils spécifiques et actionnables pour optimiser ses finances, sans aucun balisage Markdown ni astérisques)
 }
 `;
 
@@ -142,7 +177,7 @@ Génère une réponse JSON strict selon ce schéma :
       return JSON.parse(responseText) as AIAnalysisResponse;
     } catch (err) {
       this.logger.error('❌ Erreur lors de l\'appel à Gemini pour l\'analyse:', err);
-      return this.generateMockAnalysis(context);
+      return this.generateMockAnalysis(context, symbol);
     }
   }
 
@@ -153,11 +188,13 @@ Génère une réponse JSON strict selon ce schéma :
     userId: string,
     message: string,
     history?: ChatMessageDto[],
+    currencyCode: string = 'EUR',
   ): Promise<string> {
-    const context = await this.buildFinancialContext(userId);
+    const context = await this.buildFinancialContext(userId, currencyCode);
+    const symbol = getCurrencySymbol(currencyCode);
 
     if (!this.genAI) {
-      return this.generateMockChatResponse(message, context);
+      return this.generateMockChatResponse(message, context, symbol);
     }
 
     try {
@@ -176,15 +213,19 @@ Tu aides l'utilisateur à comprendre ses dépenses, optimiser ses budgets et ép
 Voici les données financières réelles de l'utilisateur pour éclairer tes réponses :
 ${context}
 
-Réponds de manière concise, structurée (avec des puces si nécessaire), constructive et toujours en français.
+Réponds de manière concise, structurée, constructive, chaleureuse et toujours en français.
 Considère ces données comme confidentielles et affiche de l'empathie.
-Il est strictement interdit d'utiliser des émojis ou des symboles superflus dans tes réponses pour conserver un style sobre, haut de gamme et épuré de type Apple.
+
+Règles de style :
+1. Il est strictement interdit d'utiliser des émojis ou des symboles superflus dans tes réponses pour conserver un style sobre, haut de gamme et épuré de type Apple.
+2. Il est STRICTEMENT INTERDIT d'utiliser des étoiles (*) ou des doubles étoiles (**) pour mettre du texte en gras, en italique ou faire des listes. Produis uniquement du texte brut fluide, propre et lisible sans aucun balisage Markdown.
+3. Toutes les valeurs financières et montants mentionnés dans tes réponses doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}). N'utilise jamais l'euro (€) ou une autre devise si celle de l'utilisateur est différente.
       `;
 
       const chatSession = model.startChat({
         history: [
           { role: 'user', parts: [{ text: `Système: Applique ces instructions pour toutes nos réponses futures:\n${systemInstruction}` }] },
-          { role: 'model', parts: [{ text: 'Entendu. Je suis SamaCoach, votre coach financier. Je prends en compte votre situation financière actuelle pour vous guider au mieux. Comment puis-je vous aider aujourd\'hui ?' }] },
+          { role: 'model', parts: [{ text: `Entendu. Je suis SamaCoach, votre coach financier. Je prends en compte votre situation financière actuelle pour vous guider au mieux en utilisant votre devise (${currencyCode}). Comment puis-je vous aider aujourd'hui ?` }] },
           ...geminiHistory,
         ],
       });
@@ -193,13 +234,13 @@ Il est strictement interdit d'utiliser des émojis ou des symboles superflus dan
       return result.response.text();
     } catch (err) {
       this.logger.error('❌ Erreur lors du chat avec Gemini:', err);
-      return this.generateMockChatResponse(message, context);
+      return this.generateMockChatResponse(message, context, symbol);
     }
   }
 
   // MARK: - Mocks & Fallbacks
 
-  private generateMockAnalysis(context: string): AIAnalysisResponse {
+  private generateMockAnalysis(context: string, symbol: string = '€'): AIAnalysisResponse {
     this.logger.log('⚠️ Génération d\'une analyse simulée (mode fallback)...');
     
     // Extraction rapide de quelques données pour personnaliser le mock
@@ -261,40 +302,26 @@ Il est strictement interdit d'utiliser des émojis ou des symboles superflus dan
       recommendations: [
         "Planifiez un virement automatique d'épargne de 10% dès le jour de versement de votre salaire.",
         "Passez en revue vos abonnements mensuels récurrents pour supprimer ceux inutilisés.",
-        "Essayez de différer de 48h tout achat impulsif supérieur à 50 € afin de valider son utilité réelle."
+        `Essayez de différer de 48h tout achat impulsif supérieur à 50 ${symbol} afin de valider son utilité réelle.`
       ]
     };
   }
 
-  private generateMockChatResponse(message: string, context: string): string {
+  private generateMockChatResponse(message: string, context: string, symbol: string = '€'): string {
     const msg = message.toLowerCase();
     
     if (msg.includes('ps5') || msg.includes('acheter') || msg.includes('achat')) {
-      return `Acheter un plaisir comme une PS5 dépend de vos priorités actuelles. \n\nEn analysant vos données : 
-- Votre solde disponible et votre taux d'épargne ce mois-ci vous donnent une idée de votre reste à vivre.
-- Si vous avez déjà constitué un **fonds d'urgence** de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget "Loisirs" spécifique.
-- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes (Alimentation, Logement).`;
+      return `Acheter un plaisir comme une PS5 dépend de vos priorités actuelles. \n\nEn analysant vos données : \n- Votre solde disponible et votre taux d'épargne ce mois-ci vous donnent une idée de votre reste à vivre.\n- Si vous avez déjà constitué un fonds d'urgence de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget Loisirs spécifique.\n- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes (Alimentation, Logement).`;
     }
     
     if (msg.includes('nourriture') || msg.includes('aliment') || msg.includes('manger')) {
-      return `Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :
-1. **Le Batch Cooking** : Préparez vos repas de la semaine le dimanche pour éviter d'acheter des plats à emporter coûteux le midi.
-2. **Faites une liste stricte** : N'allez jamais faire vos courses le ventre vide et tenez-vous rigoureusement à votre liste.
-3. **Privilégiez les marques blanches** pour les produits de base (pâtes, riz, produits d'entretien) où la différence de qualité est minime mais l'économie est de 30% en moyenne.`;
+      return `Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :\n1. Le Batch Cooking : Préparez vos repas de la semaine le dimanche pour éviter d'acheter des plats à emporter coûteux le midi.\n2. Faites une liste stricte : N'allez jamais faire vos courses le ventre vide et tenez-vous rigoureusement à votre liste.\n3. Privilégiez les marques blanches pour les produits de base (pâtes, riz, produits d'entretien) où la différence de qualité est minime mais l'économie est de 30% en moyenne.`;
     }
 
     if (msg.includes('economi') || msg.includes('épargn') || msg.includes('réduire')) {
-      return `Pour augmenter votre taux d'épargne (actuellement reflété dans vos métriques globales), je vous suggère la méthode des **50/30/20** :
-- **50%** pour vos besoins essentiels (loyer, factures, alimentation).
-- **30%** pour vos envies (sorties, shopping, loisirs).
-- **20%** directement versés en épargne ou investissement dès le début du mois.
-
-Si vous souhaitez réduire vos charges, commencez par lister vos abonnements (streaming, salles de sport, applications) et résiliez ceux qui n'ont pas servi ces 30 derniers jours. C'est souvent 30 à 50 € de gagnés immédiatement !`;
+      return `Pour augmenter votre taux d'épargne (actuellement reflété dans vos métriques globales), je vous suggère la méthode des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, alimentation).\n- 30% pour vos envies (sorties, shopping, loisirs).\n- 20% directement versés en épargne ou investissement dès le début du mois.\n\nSi vous souhaitez réduire vos charges, commencez par lister vos abonnements (streaming, salles de sport, applications) et résiliez ceux qui n'ont pas servi ces 30 derniers jours. C'est souvent 30 à 50 ${symbol} de gagnés immédiatement !`;
     }
 
-    return `Bonjour ! En tant que votre coach financier **SamaCoach**, j'analyse en continu vos transactions pour vous conseiller. \n\nVotre question concerne un point budgétaire spécifique. N'hésitez pas à me demander des précisions sur :
-- Comment optimiser une catégorie (Alimentation, Shopping, etc.).
-- Si vous pouvez réaliser un achat important en ce moment.
-- Des explications sur les meilleures règles d'épargne personnelle.`;
+    return `Bonjour ! En tant que votre coach financier SamaCoach, j'analyse en continu vos transactions pour vous conseiller. \n\nVotre question concerne un point budgétaire spécifique. N'hésitez pas à me demander des précisions sur :\n- Comment optimiser une catégorie (Alimentation, Shopping, etc.).\n- Si vous pouvez réaliser un achat important en ce moment.\n- Des explications sur les meilleures règles d'épargne personnelle.`;
   }
 }

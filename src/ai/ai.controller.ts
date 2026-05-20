@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AiService } from './ai.service';
@@ -17,8 +17,8 @@ export class AiController {
     status: 200,
     description: 'Analyse générée avec succès (score, résumé, insights, recommandations)',
   })
-  async getAnalysis(@Request() req: any) {
-    return this.aiService.generateAnalysis(req.user.id);
+  async getAnalysis(@Request() req: any, @Query('currency') currency?: string) {
+    return this.aiService.generateAnalysis(req.user.id, currency);
   }
 
   @Post('chat')
@@ -28,7 +28,7 @@ export class AiController {
     description: 'Réponse textuelle générée par SamaCoach',
   })
   async chatWithCoach(@Request() req: any, @Body() dto: ChatDto) {
-    const reply = await this.aiService.chatWithCoach(req.user.id, dto.message, dto.history);
+    const reply = await this.aiService.chatWithCoach(req.user.id, dto.message, dto.history, dto.currency);
     return { reply };
   }
 }
