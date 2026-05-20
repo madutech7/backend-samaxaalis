@@ -114,7 +114,7 @@ ${recentTxs.length > 0 ? recentTxs.join('\n') : 'Aucune transaction récente.'}
 
     try {
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: { responseMimeType: 'application/json' },
       });
 
@@ -161,7 +161,7 @@ Génère une réponse JSON strict selon ce schéma :
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       // Convertir l'historique au format Gemini
       const geminiHistory = (history ?? []).map((msg) => ({
