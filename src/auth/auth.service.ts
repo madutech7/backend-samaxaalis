@@ -7,17 +7,24 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as admin from 'firebase-admin';
+import { OAuth2Client } from 'google-auth-library';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+  private googleClient: OAuth2Client;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   async register(dto: RegisterDto) {
     // Check if user already exists
@@ -93,12 +100,34 @@ export class AuthService {
         name = email.split('@')[0];
         name = name.charAt(0).toUpperCase() + name.slice(1);
       } else {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        if (!decodedToken.email) {
-          throw new UnauthorizedException('Adresse email Google manquante');
+        // 1. Tenter la vérification via Google (iOS Native Auth)
+        try {
+          const ticket = await this.googleClient.verifyIdToken({
+            idToken: idToken,
+            audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+          });
+          const payload = ticket.getPayload();
+          if (payload && payload.email) {
+            email = payload.email;
+            name = payload.name || email.split('@')[0];
+          } else {
+            throw new Error('Payload Google invalide');
+          }
+        } catch (googleError) {
+          // 2. Si Google échoue, tenter Firebase (Web/Fallback)
+          try {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            if (!decodedToken.email) {
+              throw new UnauthorizedException('Adresse email Google manquante');
+            }
+            email = decodedToken.email;
+            name = decodedToken.name || email.split('@')[0];
+          } catch (firebaseError) {
+            console.error('❌ [AuthService] Google Verification Error:', googleError.message);
+            console.error('❌ [AuthService] Firebase Verification Error:', firebaseError.message);
+            throw new UnauthorizedException('Jeton Google ou Firebase invalide ou expiré');
+          }
         }
-        email = decodedToken.email;
-        name = decodedToken.name || email.split('@')[0];
       }
     } catch (error) {
       if (idToken && idToken.includes('@')) {
@@ -106,7 +135,7 @@ export class AuthService {
         name = email.split('@')[0];
         name = name.charAt(0).toUpperCase() + name.slice(1);
       } else {
-        throw new UnauthorizedException('Jeton Google invalide ou expiré');
+        throw error;
       }
     }
 
