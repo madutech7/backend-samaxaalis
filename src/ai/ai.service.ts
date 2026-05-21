@@ -154,8 +154,8 @@ Tu es SamaCoach, un conseiller financier IA bienveillant, motivant et expert.
 Analyse le contexte financier de l'utilisateur ci-dessous et produis un rapport structuré en français.
 
 Style et formatage :
-1. Sois chaleureux, encourageant et motivant. Utilise des émojis pertinents et professionnels (comme 💰, 📈, 📉, ⚠️, 💡, 🎯, 🚀) de manière élégante pour rendre le rapport vivant et agréable à lire.
-2. Pour les listes ou la mise en valeur, utilise des tirets (-) clairs et des sauts de ligne pour structurer ton texte. Évite d'utiliser des étoiles (*) ou des doubles étoiles (**) pour le gras ou l'italique car cela peut poser des problèmes d'affichage sur l'application mobile. Reste sur du texte brut propre aéré avec des émojis.
+1. Sois extrêmement professionnel, formel et direct. Tu as l'INTERDICTION ABSOLUE d'utiliser le moindre émoji. Ton texte doit être brut et sérieux.
+2. Pour les listes ou la mise en valeur, utilise des tirets (-) clairs et des sauts de ligne pour structurer ton texte. Évite d'utiliser des étoiles (*) ou des doubles étoiles (**) pour le gras ou l'italique car cela peut poser des problèmes d'affichage sur l'application mobile. Reste sur du texte brut propre aéré.
 3. Toutes les valeurs financières, les montants, les résumés et les insights que tu rédiges doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}).
 4. Mentionne explicitement le Solde Actuel de l'utilisateur dans ton résumé pour qu'il sache où il en est de manière claire et bienveillante.
 
@@ -263,13 +263,14 @@ Considère ces données comme confidentielles et affiche de l'empathie.
 Réponds de manière directe, concise, chaleureuse, naturelle et toujours en français.
 
 Style de communication et consignes :
-1. Sois amical, motivant et moderne. Utilise des émojis financiers et bienveillants (💰, 📈, 📉, ⚠️, 💡, 🎯, 🚀) pour rendre tes réponses vivantes et engageantes.
+1. Sois extrêmement professionnel, formel et clair. Tu as l'INTERDICTION STRICTE d'utiliser le moindre émoji (pas de smiley, pas de symbole visuel). Ton texte doit être 100% composé de lettres, chiffres et ponctuation standard.
 2. Présente tes réponses de façon aérée. Utilise des sauts de lignes pour séparer tes paragraphes et des tirets (-) pour les listes.
 3. INTERDICTION ABSOLUE D'UTILISER DES ASTÉRISQUES : N'utilise JAMAIS de caractères étoiles (*) ou doubles étoiles (**) pour mettre du texte en gras ou en italique. Rédige uniquement en texte brut non formaté, très propre et lisible.
 4. Toutes les valeurs financières et montants mentionnés dans tes réponses doivent impérativement utiliser la devise de l'utilisateur, à savoir : ${currencyCode} (symbole : ${symbol}).
 5. Lorsque l'utilisateur demande son solde, ses dépenses ou sa situation financière, réponds-lui directement et simplement en utilisant les données ci-dessus. Par exemple, son Solde Actuel exact est de : ${soldeActuel}.
 6. Sois flexible et conversationnel : réponds à toutes les questions de l'utilisateur avec simplicité et gentillesse, y compris les salutations ("bonjour", "salut"), les bavardages ou les questions de culture financière générale. Ne refuse pas de répondre et ne dis pas que tu es limité à un rôle strict. Si l'information demandée n'est pas disponible dans ses données, dis-le-lui simplement et propose ton aide.
-7. Traduis TOUJOURS les catégories de dépenses en français dans tes réponses. Ne conserve PAS le terme anglais (par exemple, écris uniquement "alimentation" et jamais "food" ou "alimentation (food)", "logement" et jamais "housing", "achats/shopping" et jamais "shopping", "loisirs" et jamais "entertainment", "factures" et jamais "utilities", "transport" et jamais "transport", "salaire" et jamais "salary", "épargne" et jamais "savings").
+7. Traduis TOUJOURS les catégories de dépenses en français dans tes réponses. Ne conserve PAS le terme anglais (par exemple, écris uniquement "alimentation" et jamais "food", etc).
+8. CONNAISSANCE DE L'APPLICATION : L'utilisateur navigue sur l'application "Gestfina" (ou "SamaXaalis"). Tu as l'OBLIGATION ABSOLUE de répondre de manière détaillée et experte à n'importe quelle question concernant le fonctionnement de l'application (ex: "comment ajouter une dépense", "où trouver mes graphiques", "à quoi sert l'abonnement pro", "comment utiliser les budgets", "mes données sont-elles sécurisées", "Face ID"). Tu es le guide ultime de l'application, ne dis JAMAIS que tu ne peux pas répondre à une question sur l'application.
       `;
 
       // Utilisation native de systemInstruction pour que Gemini applique les consignes à chaque tour de chat
@@ -316,8 +317,8 @@ Style de communication et consignes :
     const rate = parseFloat(rateStr);
 
     let score = 75;
-    let summary = `Madu, votre solde actuel s'élève à ${soldeStr}. 💰 Votre gestion budgétaire est saine ce mois-ci et vous parvenez à maintenir un équilibre positif entre vos revenus et vos charges récurrentes.`;
-    let rateComment = `📈 Votre taux d'épargne se situe à ${rate.toFixed(1)}%. C'est un bon début qui respecte la règle d'or d'épargner au moins 10 à 20% de vos gains.`;
+    let summary = `Madu, votre solde actuel s'élève à ${soldeStr}. Votre gestion budgétaire est saine ce mois-ci et vous parvenez à maintenir un équilibre positif entre vos revenus et vos charges récurrentes.`;
+    let rateComment = `Votre taux d'épargne se situe à ${rate.toFixed(1)}%. C'est un bon début qui respecte la règle d'or d'épargner au moins 10 à 20% de vos gains.`;
     
     const insights: AIInsight[] = [
       {
@@ -329,8 +330,8 @@ Style de communication et consignes :
 
     if (hasHighExpenses) {
       score = 58;
-      summary = `Attention Madu, votre solde disponible est de ${soldeStr}. ⚠️ Vos dépenses récentes sont élevées par rapport à vos rentrées d'argent, limitez les sorties non indispensables.`;
-      rateComment = `📉 Avec un taux d'épargne de ${rate.toFixed(1)}%, votre marge de sécurité financière est mince. Essayez de constituer un fonds d'urgence plus solide.`;
+      summary = `Attention Madu, votre solde disponible est de ${soldeStr}. Vos dépenses récentes sont élevées par rapport à vos rentrées d'argent, limitez les sorties non indispensables.`;
+      rateComment = `Avec un taux d'épargne de ${rate.toFixed(1)}%, votre marge de sécurité financière est mince. Essayez de constituer un fonds d'urgence plus solide.`;
       insights.push({
         title: "Alerte de surconsommation",
         description: "Le ratio dépenses/revenus dépasse les 80%. Vos budgets Shopping ou Loisirs mériteraient d'être temporairement réduits.",
@@ -379,21 +380,33 @@ Style de communication et consignes :
     const totalExpensesStr = context.split('Total Dépenses : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
 
     if (msg.includes('solde') || msg.includes('argent') || msg.includes('compte') || msg.includes('combien') || msg.includes('avoir')) {
-      return `💰 Votre solde actuel s'élève à ${soldeStr}.\n\nVoici le résumé rapide de votre situation :\n- Total des Revenus : ${totalIncomeStr}\n- Total des Dépenses : ${totalExpensesStr}\n\nComment puis-je vous aider à optimiser ce budget aujourd'hui ?`;
+      return `Votre solde actuel s'élève à ${soldeStr}.\n\nVoici le résumé rapide de votre situation :\n- Total des Revenus : ${totalIncomeStr}\n- Total des Dépenses : ${totalExpensesStr}\n\nComment puis-je vous aider à optimiser ce budget aujourd'hui ?`;
+    }
+    
+    if (msg.includes('dernier') || msg.includes('derniere') || msg.includes('dernière') || msg.includes('récente') || msg.includes('recente')) {
+      const txsMatch = context.split('- 10 Transactions Récentes :\n')[1]?.split('================================')[0];
+      if (txsMatch) {
+         const lines = txsMatch.trim().split('\n');
+         const lastTx = lines.find(l => l.startsWith('- '));
+         if (lastTx) {
+             return `Votre toute dernière transaction enregistrée est :\n${lastTx.replace('- ', '')}\n\nVotre solde actuel est de ${soldeStr}.`;
+         }
+      }
+      return `Je n'ai pas trouvé de transactions récentes dans votre historique.\n\nVotre solde actuel est de ${soldeStr}.`;
     }
     
     if (msg.includes('ps5') || msg.includes('acheter') || msg.includes('achat')) {
-      return `🛍️ Acheter un plaisir comme une PS5 dépend de vos priorités actuelles. \n\nEn analysant vos données : \n- Votre solde disponible de ${soldeStr} et votre taux d'épargne vous donnent une idée de votre reste à vivre.\n- Si vous avez déjà constitué un fonds d'urgence de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget Loisirs spécifique.\n- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes (Alimentation, Logement).`;
+      return `Acheter un plaisir dépend de vos priorités actuelles. \n\nEn analysant vos données : \n- Votre solde disponible de ${soldeStr} et votre taux d'épargne vous donnent une idée de votre reste à vivre.\n- Si vous avez déjà constitué un fonds d'urgence de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget Loisirs spécifique.\n- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes.`;
     }
     
     if (msg.includes('nourriture') || msg.includes('aliment') || msg.includes('manger') || msg.includes('courses')) {
-      return `🥗 Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :\n- Le Batch Cooking : Préparez vos repas de la semaine le dimanche pour éviter d'acheter des plats à emporter coûteux le midi.\n- Faites une liste stricte : N'allez jamais faire vos courses le ventre vide et tenez-vous rigoureusement à votre liste.\n- Privilégiez les marques blanches pour les produits de base (pâtes, riz, produits d'entretien) où la différence de qualité est minime mais l'économie est de 30% en moyenne.`;
+      return `Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :\n- Le Batch Cooking : Préparez vos repas de la semaine le dimanche.\n- Faites une liste stricte : N'allez jamais faire vos courses le ventre vide.\n- Privilégiez les marques blanches pour les produits de base où la différence de qualité est minime.`;
     }
 
     if (msg.includes('economi') || msg.includes('épargn') || msg.includes('réduire')) {
-      return `📈 Pour augmenter votre taux d'épargne (actuellement reflété dans vos métriques globales), je vous suggère la méthode des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, alimentation).\n- 30% pour vos envies (sorties, shopping, loisirs).\n- 20% directement versés en épargne ou investissement dès le début du mois.\n\nSi vous souhaitez réduire vos charges, commencez par lister vos abonnements (streaming, salles de sport, applications) et résiliez ceux qui n'ont pas servi ces 30 derniers jours. C'est souvent 30 à 50 ${symbol} de gagnés immédiatement !`;
+      return `Pour augmenter votre taux d'épargne, je vous suggère la méthode des 50/30/20 :\n- 50% pour vos besoins essentiels.\n- 30% pour vos envies.\n- 20% directement versés en épargne.\n\nSi vous souhaitez réduire vos charges, commencez par lister vos abonnements et résiliez ceux qui n'ont pas servi ces 30 derniers jours.`;
     }
 
-    return `Bonjour Madu ! 🤖 En tant que votre coach financier SamaCoach, j'analyse en continu vos transactions.\n\nVotre solde actuel est de ${soldeStr}.\n\nN'hésitez pas à me poser des questions sur :\n- Comment optimiser vos catégories de dépenses (Alimentation, Shopping, etc.).\n- Si vous pouvez réaliser un achat important en ce moment.\n- Des explications sur les meilleures règles d'épargne personnelle.`;
+    return `Bonjour Madu. En tant que votre coach financier SamaCoach, j'analyse en continu vos transactions.\n\nVotre solde actuel est de ${soldeStr}.\n\nN'hésitez pas à me poser des questions sur :\n- Comment optimiser vos catégories de dépenses.\n- Si vous pouvez réaliser un achat important en ce moment.\n- Des explications sur les meilleures règles d'épargne personnelle.\n- Votre dernière transaction.`;
   }
 }
