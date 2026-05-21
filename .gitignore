@@ -39,6 +39,8 @@ lerna-debug.log*
 .env
 .env.local
 .env.production
+.env.example
+
 
 # Firebase
 serviceAccountKey.json

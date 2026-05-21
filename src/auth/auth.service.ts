@@ -100,11 +100,25 @@ export class AuthService {
         name = email.split('@')[0];
         name = name.charAt(0).toUpperCase() + name.slice(1);
       } else {
+        // Debug: Log du payload pour voir l'audience réelle
+        try {
+          const payloadPart = idToken.split('.')[1];
+          if (payloadPart) {
+            const decoded = Buffer.from(payloadPart, 'base64').toString();
+            console.log('debug [AuthService] Google Token Payload:', decoded);
+          }
+        } catch (e) {
+          console.error('debug [AuthService] Failed to decode token payload:', e.message);
+        }
+
         // 1. Tenter la vérification via Google (iOS Native Auth)
         try {
+          const audiences = (this.configService.get<string>('GOOGLE_CLIENT_IDS') ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+          console.log('debug [AuthService] Verifying with audiences:', audiences);
+          
           const ticket = await this.googleClient.verifyIdToken({
             idToken: idToken,
-            audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+            audience: audiences,
           });
           const payload = ticket.getPayload();
           if (payload && payload.email) {
@@ -113,21 +127,25 @@ export class AuthService {
           } else {
             throw new Error('Payload Google invalide');
           }
-        } catch (googleError) {
-          // 2. Si Google échoue, tenter Firebase (Web/Fallback)
-          try {
-            const decodedToken = await admin.auth().verifyIdToken(idToken);
-            if (!decodedToken.email) {
-              throw new UnauthorizedException('Adresse email Google manquante');
-            }
-            email = decodedToken.email;
-            name = decodedToken.name || email.split('@')[0];
-          } catch (firebaseError) {
+          } catch (googleError: any) {
             console.error('❌ [AuthService] Google Verification Error:', googleError.message);
-            console.error('❌ [AuthService] Firebase Verification Error:', firebaseError.message);
-            throw new UnauthorizedException('Jeton Google ou Firebase invalide ou expiré');
+            // 2. Si Google échoue, tenter Firebase (Web/Fallback)
+            try {
+              console.log('debug [AuthService] Google verification failed, trying Firebase...');
+              const decodedToken = await admin.auth().verifyIdToken(idToken);
+              if (!decodedToken.email) {
+                throw new UnauthorizedException('Adresse email Google manquante');
+              }
+              email = decodedToken.email;
+              name = decodedToken.name || email.split('@')[0];
+            } catch (firebaseError: any) {
+              console.error('❌ [AuthService] Firebase Verification Error:', firebaseError.message);
+              
+              // Préparer un message détaillé pour le client
+              const details = `Google: ${googleError.message} | Firebase: ${firebaseError.message}`;
+              throw new UnauthorizedException(`Erreur d'authentification : ${details}`);
+            }
           }
-        }
       }
     } catch (error) {
       if (idToken && idToken.includes('@')) {
