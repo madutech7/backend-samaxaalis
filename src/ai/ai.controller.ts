@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
@@ -12,6 +13,7 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Get('analyze')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Générer une analyse de santé financière par l\'IA' })
   @ApiResponse({
     status: 200,
@@ -22,6 +24,7 @@ export class AiController {
   }
 
   @Post('chat')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Discuter avec le coach financier IA (SamaCoach)' })
   @ApiResponse({
     status: 201,
