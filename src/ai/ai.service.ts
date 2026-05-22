@@ -145,7 +145,7 @@ ${recentTxs.length > 0 ? recentTxs.join('\n') : 'Aucune transaction récente.'}
 
     try {
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-pro',
         generationConfig: { responseMimeType: 'application/json' },
       });
 
@@ -288,7 +288,7 @@ Ne dis JAMAIS "Je ne sais pas comment faire ça dans l'application". Si l'utilis
 
       // Utilisation native de systemInstruction pour que Gemini applique les consignes à chaque tour de chat
       const model = this.genAI.getGenerativeModel({ 
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-pro',
         systemInstruction: systemInstruction,
       });
 
@@ -388,38 +388,65 @@ Ne dis JAMAIS "Je ne sais pas comment faire ça dans l'application". Si l'utilis
 
   private generateMockChatResponse(message: string, context: string, symbol: string = '€'): string {
     const msg = message.toLowerCase();
+    
+    // Normalisation des accents pour simplifier la recherche
+    const normalizedMsg = msg.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
     const soldeStr = context.split('Solde Actuel : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
     const totalIncomeStr = context.split('Total Revenus : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
     const totalExpensesStr = context.split('Total Dépenses : ')[1]?.split('\n')[0]?.trim() ?? `0.00 ${symbol}`;
+    const epargneNetteStr = context.split('Épargne Nette : ')[1]?.split('(')[0]?.trim() ?? `0.00 ${symbol}`;
 
-    if (msg.includes('solde') || msg.includes('argent') || msg.includes('compte') || msg.includes('combien') || msg.includes('avoir')) {
-      return `Votre solde actuel s'élève à ${soldeStr}.\n\nVoici le résumé rapide de votre situation :\n- Total des Revenus : ${totalIncomeStr}\n- Total des Dépenses : ${totalExpensesStr}\n\nComment puis-je vous aider à optimiser ce budget aujourd'hui ?`;
+    const containsAny = (words: string[]) => words.some(w => normalizedMsg.includes(w));
+
+    if (containsAny(['bonjour', 'salut', 'coucou', 'hey', 'hello'])) {
+      return `Bonjour Madu ! Je suis SamaCoach, votre assistant financier intelligent. Votre solde actuel s'élève à ${soldeStr}.\n\nJe suis prêt à répondre à vos questions sur vos dépenses, votre dernière transaction, vos revenus ou vos budgets. Que souhaitez-vous savoir ?`;
+    }
+
+    if (containsAny(['solde', 'argent', 'compte', 'combien', 'reste', 'avoir'])) {
+      return `Bien sûr ! Votre solde actuel s'élève à ${soldeStr}.\n\nVoici un aperçu rapide de votre situation financière :\n- Total des Revenus : ${totalIncomeStr}\n- Total des Dépenses : ${totalExpensesStr}\n- Épargne Nette : ${epargneNetteStr}\n\nSi vous le souhaitez, nous pouvons voir comment optimiser tout cela ce mois-ci.`;
     }
     
-    if (msg.includes('dernier') || msg.includes('derniere') || msg.includes('dernière') || msg.includes('récente') || msg.includes('recente')) {
+    if (containsAny(['dernier', 'recente', 'historique', 'precedent'])) {
       const txsMatch = context.split('- 10 Transactions Récentes :\n')[1]?.split('================================')[0];
       if (txsMatch) {
          const lines = txsMatch.trim().split('\n');
          const lastTx = lines.find(l => l.startsWith('- '));
          if (lastTx) {
-             return `Votre toute dernière transaction enregistrée est :\n${lastTx.replace('- ', '')}\n\nVotre solde actuel est de ${soldeStr}.`;
+             return `Votre toute dernière transaction enregistrée est :\n${lastTx.replace('- ', '')}\n\nPour info, votre solde actuel est de ${soldeStr}.`;
          }
       }
-      return `Je n'ai pas trouvé de transactions récentes dans votre historique.\n\nVotre solde actuel est de ${soldeStr}.`;
+      return `Je n'ai pas trouvé de transactions récentes dans votre historique.\n\nCependant, votre solde actuel est de ${soldeStr}.`;
     }
     
-    if (msg.includes('ps5') || msg.includes('acheter') || msg.includes('achat')) {
-      return `Acheter un plaisir dépend de vos priorités actuelles. \n\nEn analysant vos données : \n- Votre solde disponible de ${soldeStr} et votre taux d'épargne vous donnent une idée de votre reste à vivre.\n- Si vous avez déjà constitué un fonds d'urgence de 3 à 6 mois de dépenses, vous pouvez tout à fait vous l'offrir en créant une ligne de budget Loisirs spécifique.\n- Sinon, je vous conseille d'épargner sur 2 ou 3 mois pour amortir cet achat sans impacter vos dépenses courantes.`;
+    if (containsAny(['depense', 'charge', 'sorti'])) {
+      return `Vous avez dépensé un total de ${totalExpensesStr} récemment. Vos dépenses sont surveillées en permanence pour vous aider à rester dans le vert. Avez-vous une dépense spécifique en tête dont vous souhaitez discuter ?`;
+    }
+
+    if (containsAny(['revenu', 'salaire', 'gagne', 'rentree'])) {
+      return `Vos revenus totaux enregistrés sont de ${totalIncomeStr}. Excellente nouvelle ! Avez-vous pensé à investir ou épargner une partie de cette somme (mettre 10 à 20% de côté est l'idéal) ?`;
+    }
+
+    if (containsAny(['budget', 'limite', 'plafond', 'depasse'])) {
+      const budgetsMatch = context.split('- Budgets Définis :\n')[1]?.split('- 10 Transactions Récentes')[0];
+      if (budgetsMatch && !budgetsMatch.includes('Aucun budget configuré')) {
+        return `Voici un point d'attention sur vos budgets :\n${budgetsMatch.trim()}\n\nFaites attention aux catégories qui s'approchent des 100% de consommation pour éviter les mauvaises surprises à la fin du mois.`;
+      }
+      return `Vous n'avez pas encore défini de budgets de dépenses précis. Je vous recommande d'en créer depuis l'écran Budgets de GestFina pour mieux contrôler vos dépenses ! (surtout pour l'Alimentation et les Loisirs)`;
+    }
+
+    if (containsAny(['ps5', 'acheter', 'achat', 'offrir', 'telephone', 'macbook', 'voiture', 'projet'])) {
+      return `Tout achat plaisir ou matériel important dépend de votre capacité d'épargne. \n\nVu que votre solde disponible est de ${soldeStr} :\n- Vérifiez d'abord si cela ne met pas en péril vos charges fixes de ce mois-ci.\n- Avez-vous une épargne de sécurité de côté ? Si oui et que l'achat est budgété, faites-vous plaisir !\n- Sinon, je vous suggère d'étaler cette envie et d'épargner petit à petit pendant les 2-3 prochains mois pour l'acheter sans aucun stress financier.`;
     }
     
-    if (msg.includes('nourriture') || msg.includes('aliment') || msg.includes('manger') || msg.includes('courses')) {
-      return `Le budget alimentation est souvent le plus facile à optimiser sans perdre en qualité de vie. Voici 3 astuces rapides :\n- Le Batch Cooking : Préparez vos repas de la semaine le dimanche.\n- Faites une liste stricte : N'allez jamais faire vos courses le ventre vide.\n- Privilégiez les marques blanches pour les produits de base où la différence de qualité est minime.`;
+    if (containsAny(['nourriture', 'aliment', 'manger', 'courses', 'restaurant', 'resto'])) {
+      return `L'alimentation est le poste de dépenses le plus facile à optimiser. Voici 3 conseils pour économiser :\n- Le Batch Cooking : Préparez vos plats de la semaine le dimanche.\n- Les listes strictes : N'allez pas faire les courses le ventre vide pour éviter les achats compulsifs.\n- Privilégiez les marques de distributeurs pour les ingrédients de base. Vous sauverez vite plusieurs dizaines d'euros !`;
     }
 
-    if (msg.includes('economi') || msg.includes('épargn') || msg.includes('réduire')) {
-      return `Pour augmenter votre taux d'épargne, je vous suggère la méthode des 50/30/20 :\n- 50% pour vos besoins essentiels.\n- 30% pour vos envies.\n- 20% directement versés en épargne.\n\nSi vous souhaitez réduire vos charges, commencez par lister vos abonnements et résiliez ceux qui n'ont pas servi ces 30 derniers jours.`;
+    if (containsAny(['economi', 'epargn', 'reduire', 'astuce', 'conseil', 'optimis'])) {
+      return `Pour augmenter votre épargne, appliquez la règle des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, courses).\n- 30% pour vos envies et loisirs.\n- 20% directement versés en épargne en début de mois.\n\nUne astuce immédiate : revoyez vos petits abonnements mensuels et supprimez ceux inutilisés depuis un mois.`;
     }
 
-    return `Bonjour Madu. En tant que votre coach financier SamaCoach, j'analyse en continu vos transactions.\n\nVotre solde actuel est de ${soldeStr}.\n\nN'hésitez pas à me poser des questions sur :\n- Comment optimiser vos catégories de dépenses.\n- Si vous pouvez réaliser un achat important en ce moment.\n- Des explications sur les meilleures règles d'épargne personnelle.\n- Votre dernière transaction.`;
+    return `Je suis SamaCoach, votre expert financier personnel ! \n\nVotre solde actuel est de ${soldeStr}.\n\nN'hésitez pas à me demander :\n- "Quel est mon solde ?" ou "Montre mes revenus"\n- "Quelle est ma dernière transaction ?"\n- "Est-ce que je peux m'acheter une PS5 ce mois-ci ?"\n- "Comment réduire mes dépenses ?"`;
   }
 }
