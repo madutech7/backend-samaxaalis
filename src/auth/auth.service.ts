@@ -113,8 +113,9 @@ export class AuthService {
 
         // 1. Tenter la vérification via Google (iOS Native Auth)
         try {
-          const audiences = (this.configService.get<string>('GOOGLE_CLIENT_IDS') ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0);
-          console.log('debug [AuthService] Verifying with audiences:', audiences);
+          const rawAudiences = this.configService.get<string>('GOOGLE_CLIENT_IDS') ?? '';
+          const audiences = rawAudiences.split(',').map(s => s.trim()).filter(s => s.length > 0);
+          console.log(`[AuthService] Verifying Google token. Audiences allowed: ${audiences.join(', ')}`);
           
           const ticket = await this.googleClient.verifyIdToken({
             idToken: idToken,
@@ -124,28 +125,44 @@ export class AuthService {
           if (payload && payload.email) {
             email = payload.email;
             name = payload.name || email.split('@')[0];
+            console.log(`[AuthService] Google verification success for ${email}`);
           } else {
-            throw new Error('Payload Google invalide');
+            throw new Error('Payload Google invalide ou email manquant');
           }
-          } catch (googleError: any) {
-            console.error('❌ [AuthService] Google Verification Error:', googleError.message);
-            // 2. Si Google échoue, tenter Firebase (Web/Fallback)
-            try {
-              console.log('debug [AuthService] Google verification failed, trying Firebase...');
-              const decodedToken = await admin.auth().verifyIdToken(idToken);
-              if (!decodedToken.email) {
-                throw new UnauthorizedException('Adresse email Google manquante');
-              }
-              email = decodedToken.email;
-              name = decodedToken.name || email.split('@')[0];
-            } catch (firebaseError: any) {
-              console.error('❌ [AuthService] Firebase Verification Error:', firebaseError.message);
-              
-              // Préparer un message détaillé pour le client
-              const details = `Google: ${googleError.message} | Firebase: ${firebaseError.message}`;
-              throw new UnauthorizedException(`Erreur d'authentification : ${details}`);
+        } catch (googleError: any) {
+          console.error(`❌ [AuthService] Google Library Error: ${googleError.message}`);
+          
+          // Debugging audience mismatch
+          let tokenAudience = 'inconnue';
+          try {
+            const payloadPart = idToken.split('.')[1];
+            if (payloadPart) {
+              const decoded = JSON.parse(Buffer.from(payloadPart, 'base64').toString());
+              tokenAudience = decoded.aud || decoded.azp || 'inconnue';
+              console.log(`[AuthService] Token found with aud: ${tokenAudience}`);
             }
+          } catch (e) {}
+
+          // 2. Si Google échoue, tenter Firebase (Web/Fallback)
+          try {
+            console.log('[AuthService] Google library verification failed, trying Firebase Admin...');
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            if (!decodedToken.email) {
+              throw new UnauthorizedException('Adresse email Google manquante via Firebase');
+            }
+            email = decodedToken.email;
+            name = decodedToken.name || email.split('@')[0];
+            console.log(`[AuthService] Firebase verification success for ${email}`);
+          } catch (firebaseError: any) {
+            console.error(`❌ [AuthService] Firebase Verification Error: ${firebaseError.message}`);
+            
+            // Préparer un message détaillé pour aider le dev
+            const details = `Audience token: ${tokenAudience}. Attendu un de: [${rawAudiences}]. Erreur Google: ${googleError.message}`;
+            console.error(`[AuthService] Authentication failed completely. Details: ${details}`);
+            
+            throw new UnauthorizedException(`Jeton Google invalide ou expiré. Détails techniques : ${details}`);
           }
+        }
       }
     } catch (error) {
       if (idToken && idToken.includes('@')) {
