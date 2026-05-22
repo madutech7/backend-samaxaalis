@@ -435,18 +435,46 @@ Ne dis JAMAIS "Je ne sais pas comment faire ça dans l'application". Si l'utilis
       return `Vous n'avez pas encore défini de budgets de dépenses précis. Je vous recommande d'en créer depuis l'écran Budgets de GestFina pour mieux contrôler vos dépenses ! (surtout pour l'Alimentation et les Loisirs)`;
     }
 
-    if (containsAny(['ps5', 'acheter', 'achat', 'offrir', 'telephone', 'macbook', 'voiture', 'projet'])) {
+    if (containsAny(['ps5', 'acheter', 'achat', 'offrir', 'telephone', 'macbook', 'ordinateur', 'tele', 'projet'])) {
       return `Tout achat plaisir ou matériel important dépend de votre capacité d'épargne. \n\nVu que votre solde disponible est de ${soldeStr} :\n- Vérifiez d'abord si cela ne met pas en péril vos charges fixes de ce mois-ci.\n- Avez-vous une épargne de sécurité de côté ? Si oui et que l'achat est budgété, faites-vous plaisir !\n- Sinon, je vous suggère d'étaler cette envie et d'épargner petit à petit pendant les 2-3 prochains mois pour l'acheter sans aucun stress financier.`;
     }
     
+    if (containsAny(['loyer', 'logement', 'maison', 'appartement'])) {
+      return `Le logement (loyer + charges) ne devrait idéalement pas dépasser 33% de vos revenus totaux (${totalIncomeStr}). \nDans votre cas, gardez un œil sur ce ratio ! C'est la charge fixe la plus lourde, assurez-vous qu'elle soit bien provisionnée chaque mois pour être serein.`;
+    }
+
+    if (containsAny(['voyage', 'vacances', 'avion', 'hotel', 'billet', 'sejour'])) {
+      return `Préparer un voyage est un excellent projet !\nJe recommande de créer un budget "Vacances" dédié sur l'application. Essayez d'allouer au moins 5% à 10% de vos ${totalIncomeStr} de revenus mensuels jusqu'à votre date de départ pour éviter de creuser lourdement dans votre solde de ${soldeStr} d'un seul coup.`;
+    }
+
+    if (containsAny(['credit', 'dette', 'pret', 'emprunt'])) {
+      return `Concernant les crédits, la règle d'or est de rembourser en priorité les dettes avec les taux d'intérêt les plus élevés (comme les crédits à la consommation). Avec une épargne nette de ${epargneNetteStr}, vous pourriez allouer un certain montant pour accélérer ces remboursements.`;
+    }
+
+    if (containsAny(['crypto', 'bitcoin', 'bourse', 'action', 'investir', 'investissement'])) {
+      return `L'investissement (bourse, ETFs, crypto, etc.) est super pour le long terme. Mais n'investissez que l'argent dont vous n'avez pas besoin à court terme ! \nVérifiez si vous avez l'équivalent de 3 mois de dépenses de côté dans votre épargne de sécurité avant d'engager votre solde de ${soldeStr} sur des marchés risqués.`;
+    }
+
+    if (containsAny(['urgence', 'imprevu', 'galere', 'secour'])) {
+      return `Un fonds d'urgence est vital pour votre tranquillité. L'objectif est d'avoir entre 3 et 6 mois de dépenses courantes sur un livret très sécurisé et facilement accessible. \nSi vos dépenses totales actuelles sont de ${totalExpensesStr}, calculez environ 3 fois ce montant pour constituer votre coussin de sécurité !`;
+    }
+
+    if (containsAny(['fete', 'noel', 'anniversaire', 'cadeau', 'tabaski', 'korite'])) {
+      return `Anticiper les événements spéciaux (anniversaires, fêtes de fin d'année) permet d'éviter les gros découverts. L'astuce est de lisser le coût sur l'année : épargnez un tout petit peu chaque mois. \nVotre solde est de ${soldeStr}, alors planifiez vos gros cadeaux avec un budget fixe pour ne pas le vider.`;
+    }
+    
     if (containsAny(['nourriture', 'aliment', 'manger', 'courses', 'restaurant', 'resto'])) {
-      return `L'alimentation est le poste de dépenses le plus facile à optimiser. Voici 3 conseils pour économiser :\n- Le Batch Cooking : Préparez vos plats de la semaine le dimanche.\n- Les listes strictes : N'allez pas faire les courses le ventre vide pour éviter les achats compulsifs.\n- Privilégiez les marques de distributeurs pour les ingrédients de base. Vous sauverez vite plusieurs dizaines d'euros !`;
+      return `L'alimentation est le poste de dépenses le plus facile à optimiser. Voici 3 conseils pour économiser :\n- Le Batch Cooking : Préparez vos plats de la semaine le dimanche.\n- Les listes strictes : N'allez pas faire les courses le ventre vide pour éviter les achats compulsifs.\n- Privilégiez les repas faits maison par rapport aux restaurants. Vous sauverez vite plusieurs dizaines d'euros !`;
+    }
+
+    if (containsAny(['transport', 'voiture', 'essence', 'bus', 'train', 'carburant'])) {
+      return `Le transport est souvent un poste de dépense qui s'envole vite. Pensez au covoiturage, à la réduction des trajets très courts en voiture, ou aux passes mensuels illimités si vous prenez les transports en commun. Chaque euro sauvé sur le transport peut augmenter directement votre épargne de ${epargneNetteStr} !`;
     }
 
     if (containsAny(['economi', 'epargn', 'reduire', 'astuce', 'conseil', 'optimis'])) {
       return `Pour augmenter votre épargne, appliquez la règle des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, courses).\n- 30% pour vos envies et loisirs.\n- 20% directement versés en épargne en début de mois.\n\nUne astuce immédiate : revoyez vos petits abonnements mensuels et supprimez ceux inutilisés depuis un mois.`;
     }
 
-    return `Je suis SamaCoach, votre expert financier personnel ! \n\nVotre solde actuel est de ${soldeStr}.\n\nN'hésitez pas à me demander :\n- "Quel est mon solde ?" ou "Montre mes revenus"\n- "Quelle est ma dernière transaction ?"\n- "Est-ce que je peux m'acheter une PS5 ce mois-ci ?"\n- "Comment réduire mes dépenses ?"`;
+    return `Je suis SamaCoach, votre expert financier personnel, et je veille sur vos comptes ! \n\nVotre solde actuel est de ${soldeStr}.\n\nPour tirer le meilleur de moi, posez-moi des questions spécifiques ou demandez un conseil :\n- "Comment planifier mes prochaines vacances ?" 🏖️\n- "Dois-je investir en crypto ce mois-ci ?" 📈\n- "Quel est mon solde et mon épargne ?" 💰\n- "Astuces pour le loyer ou l'essence" 🚗`;
   }
 }
