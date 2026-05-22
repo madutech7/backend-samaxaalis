@@ -111,9 +111,9 @@ export class AuthService {
           console.error('debug [AuthService] Failed to decode token payload:', e.message);
         }
 
+        const rawAudiences = this.configService.get<string>('GOOGLE_CLIENT_IDS') ?? '';
         // 1. Tenter la vérification via Google (iOS Native Auth)
         try {
-          const rawAudiences = this.configService.get<string>('GOOGLE_CLIENT_IDS') ?? '';
           const audiences = rawAudiences.split(',').map(s => s.trim()).filter(s => s.length > 0);
           console.log(`[AuthService] Verifying Google token. Audiences allowed: ${audiences.join(', ')}`);
           

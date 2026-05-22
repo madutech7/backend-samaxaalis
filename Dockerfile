@@ -1,5 +1,5 @@
-# Utiliser l'image officielle Node.js légère
-FROM node:18-alpine
+# Utiliser l'image officielle Node.js légère (version 20 pour NestJS 11)
+FROM node:20-alpine
 
 # Définir le répertoire de travail
 WORKDIR /app
