@@ -467,14 +467,208 @@ Ne dis JAMAIS "Je ne sais pas comment faire ça dans l'application". Si l'utilis
       return `L'alimentation est le poste de dépenses le plus facile à optimiser. Voici 3 conseils pour économiser :\n- Le Batch Cooking : Préparez vos plats de la semaine le dimanche.\n- Les listes strictes : N'allez pas faire les courses le ventre vide pour éviter les achats compulsifs.\n- Privilégiez les repas faits maison par rapport aux restaurants. Vous sauverez vite plusieurs dizaines d'euros !`;
     }
 
-    if (containsAny(['transport', 'voiture', 'essence', 'bus', 'train', 'carburant'])) {
-      return `Le transport est souvent un poste de dépense qui s'envole vite. Pensez au covoiturage, à la réduction des trajets très courts en voiture, ou aux passes mensuels illimités si vous prenez les transports en commun. Chaque euro sauvé sur le transport peut augmenter directement votre épargne de ${epargneNetteStr} !`;
-    }
-
     if (containsAny(['economi', 'epargn', 'reduire', 'astuce', 'conseil', 'optimis'])) {
-      return `Pour augmenter votre épargne, appliquez la règle des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, courses).\n- 30% pour vos envies et loisirs.\n- 20% directement versés en épargne en début de mois.\n\nUne astuce immédiate : revoyez vos petits abonnements mensuels et supprimez ceux inutilisés depuis un mois.`;
+      return `Pour augmenter votre épargne, appliquez la règle des 50/30/20 :\n- 50% pour vos besoins essentiels (loyer, factures, courses).\n- 30% pour vos envies et loisirs.\n- 20% directement versés en épargne en début de mois.\n\nUne astuce immédiate : revoyez vos petits abonnements mensuels et supprimez ceux inutilisés depuis un mois. Sur un an, vous récupérez facilement plusieurs dizaines d'euros.`;
     }
 
-    return `Je suis SamaCoach, votre expert financier personnel, et je veille sur vos comptes ! \n\nVotre solde actuel est de ${soldeStr}.\n\nPour tirer le meilleur de moi, posez-moi des questions spécifiques ou demandez un conseil :\n- "Comment planifier mes prochaines vacances ?" 🏖️\n- "Dois-je investir en crypto ce mois-ci ?" 📈\n- "Quel est mon solde et mon épargne ?" 💰\n- "Astuces pour le loyer ou l'essence" 🚗`;
+    if (containsAny(['abonnement', 'netflix', 'spotify', 'canal', 'amazon', 'apple', 'streaming', 'forfait'])) {
+      return `Les abonnements peuvent vite devenir un gouffre financier invisible ! Listez tous vos abonnements actifs et posez-vous la question : l'avez-vous utilisé au moins une fois ce mois-ci ?\n\nUn abonnement à 10 euros non utilisé, c'est 120 euros gaspillés par an. Votre épargne nette actuelle est de ${epargneNetteStr}, chaque euro compte.`;
+    }
+
+    if (containsAny(['sante', 'medecin', 'pharmacie', 'hopital', 'mutuelle', 'docteur'])) {
+      return `Les dépenses santé sont difficiles à anticiper, mais importantes à budgétiser !\nJe vous conseille de prévoir une petite enveloppe mensuelle dédiée (médecin, pharmacie, optique) pour lisser ces coûts. Si vous avez une mutuelle, vérifiez vos remboursements pour éviter de payer des dépenses déjà couvertes.\n\nVotre solde actuel de ${soldeStr} vous donne une certaine marge, profitez-en pour constituer cette réserve santé.`;
+    }
+
+    if (containsAny(['telephone', 'mobile', 'forfait', 'operateur', 'free', 'orange', 'sfr', 'sim'])) {
+      return `Un forfait téléphonique optimisé peut vous faire économiser 10 à 30 euros par mois !\nComparez régulièrement les offres. Les opérateurs pas chers (type Free, NRJ Mobile) proposent souvent les mêmes services à moitié prix. Sur votre solde disponible de ${soldeStr}, cette économie annuelle de 120-360 euros est loin d'être négligeable.`;
+    }
+
+    if (containsAny(['augmentation', 'negociation', 'salaire', 'raise', 'promotion'])) {
+      return `Négocier une augmentation est l'un des meilleurs investissements de temps que vous puissiez faire !\n\nVos revenus actuels sont de ${totalIncomeStr}. Une augmentation de seulement 5 à 10% change radicalement votre capacité d'épargne sur le long terme. Préparez des arguments concrets (réalisations, valeur marché), choisissez le bon moment, et négociez avec confiance.`;
+    }
+
+    if (containsAny(['retraite', 'pension', 'futur', 'long terme', 'vieux'])) {
+      return `Penser à la retraite tôt est une excellente décision !\n\nMême 50 euros par mois placés dès maintenant dans un plan épargne retraite peuvent représenter des dizaines de milliers d'euros dans 30 ans grâce aux intérêts composés. Avec votre épargne nette de ${epargneNetteStr} par mois, vous pouvez dès maintenant y allouer une petite part.`;
+    }
+
+    if (containsAny(['freelance', 'auto-entrepreneur', 'business', 'Side hustle', 'activite', 'creer'])) {
+      return `Lancer une activité parallèle (freelance, vente en ligne, consulting) est un excellent moyen d'augmenter ses revenus !\n\nVos dépenses actuelles sont de ${totalExpensesStr}. Si vous arrivez à générer même 20% de ce montant en revenus complémentaires, cela change votre bilan financier. Notez que en auto-entreprise, il faut bien séparer vos finances personnelles et professionnelles.`;
+    }
+
+    if (containsAny(['impot', 'taxe', 'fisc', 'declaration', 'tva'])) {
+      return `Les impôts sont souvent mal anticipés !\n\nSurtout si vous êtes indépendant ou freelance, mettez de côté environ 20 à 30% de chaque revenu perçu pour couvrir vos obligations fiscales. Si vous êtes salarié, vérifiez si vous êtes éligible à des réductions (dons, frais réels, investissement immobilier locatif).\n\nVotre solde de ${soldeStr} doit toujours intégrer cette réserve fiscale.`;
+    }
+
+    if (containsAny(['renovation', 'travaux', 'bricolage', 'peinture', 'cuisine', 'salle de bain'])) {
+      return `Les travaux de rénovation ont tendance à dépasser le budget initial de 20 à 30% ! Prévoyez toujours une marge de sécurité.\n\nAvant de commencer, obtenez 3 devis comparatifs et établissez un budget fixe avec votre solde actuel de ${soldeStr}. Si cela le dépasse, envisagez un crédit travaux à taux zéro (PTZ en France) ou de faire les travaux en plusieurs phases.`;
+    }
+
+    if (containsAny(['objectif', 'but', 'projet', 'reve', 'ambition', 'goal'])) {
+      return `Avoir un objectif financier clair est la clé pour ne pas dépenser sans compter !\n\nQuel est votre projet en ce moment ? Un voyage, un achat immobilier, une voiture ?\nAvec une épargne nette de ${epargneNetteStr} et un solde de ${soldeStr}, calculons ensemble combien de mois il faut pour l'atteindre. Donnez-moi le montant et je vous aide à planifier.`;
+    }
+
+    if (containsAny(['comparer', 'analyse', 'bilan', 'rapport', 'performance', 'resultat'])) {
+      return `Voici un bilan express de votre situation :\n\n- Revenus : ${totalIncomeStr}\n- Dépenses : ${totalExpensesStr}\n- Épargne nette : ${epargneNetteStr}\n- Solde disponible : ${soldeStr}\n\nEn général, si votre taux d'épargne est supérieur à 15%, vous êtes sur la bonne voie. En dessous de 5%, il faudrait sérieusement revoir les postes de dépenses. Souhaitez-vous travailler sur un poste en particulier ?`;
+    }
+
+    if (containsAny(['shopping', 'mode', 'vetement', 'chaussure', 'sac', 'luxe', 'bijou'])) {
+      return `Le shopping est l'un des pièges les plus courants pour l'équilibre budgétaire !\n\nL'astuce anti-impulsivité : attendez toujours 48h avant tout achat mode supérieur à 30 euros. Si vous y pensez encore après 2 jours, c'est probablement un vrai besoin.\n\nVotre solde actuel est de ${soldeStr}. Créez un budget mensuel "Shopping" fixe pour vous faire plaisir sans culpabiliser !`;
+    }
+
+    if (containsAny(['sport', 'salle', 'fitness', 'musculation', 'tennis', 'piscine', 'coach sportif'])) {
+      return `Investir dans sa santé physique est l'un des meilleurs investissements sur le long terme !\n\nCela dit, si votre salle de sport coûte plus de 30 à 40 euros par mois et que vous y allez moins de 8 fois par mois, regardez des alternatives (sport en plein air, applications mobiles gratuites, salle low-cost). Votre épargne nette de ${epargneNetteStr} mérite chaque optimisation.`;
+    }
+
+    if (containsAny(['week-end', 'weekend', 'sortie', 'loisir', 'cinema', 'concert', 'bar'])) {
+      return `Les loisirs et sorties sont essentiels pour votre bien-être, il ne faut pas les supprimer !\n\nLa clé est de les budgétiser. Allouez-vous un budget mensuel "Plaisir" fixe. Une fois l'enveloppe utilisée, pas de sorties supplémentaires jusqu'au mois suivant. Ainsi, vous profitez sereinement sans impacter votre solde de ${soldeStr}.`;
+    }
+
+    if (containsAny(['fatigue', 'stress', 'anxieux', 'angoisse', 'difficile', 'dur', 'galere', 'probleme'])) {
+      return `Je comprends que les finances peuvent être une source de stress réelle. Vous n'êtes pas seul dans cette situation.\n\nPrenez les choses une à une. La première étape est toujours de savoir exactement où on en est, et votre solde actuel de ${soldeStr} est ce point de départ.\n\nEnsuite, on identifie ensemble un seul poste à améliorer ce mois-ci. Même un petit progrès de 20 à 30 euros d'économie est une victoire. Par quelle dépense voulez-vous commencer ?`;
+    }
+
+    if (containsAny(['regret', 'erreur', 'depense trop', 'gaspille', 'bêtise', 'fou', 'idiot'])) {
+      return `Tout le monde fait des dépenses qu'il regrette, c'est humain !\n\nL'essentiel est d'en tirer une leçon et de réajuster pour le mois suivant. Avec votre solde de ${soldeStr}, regardez ce qui peut être réduit d'ici la fin du mois pour compenser cet écart. En finances personnelles, un mois difficile ne détruit pas tout si on se reprend rapidement.`;
+    }
+
+    if (containsAny(['bien dormir', 'revenu passif', 'argent dormir', 'passif', 'livret', 'placement'])) {
+      return `Faire "travailler son argent" pendant qu'on dort, c'est le Saint Graal de la finance personnelle !\n\nAvec votre solde de ${soldeStr}, voici quelques pistes simples pour commencer :\n- Livret d'épargne rémunéré (Livret A, LEP, LDDS) : sans risque, disponible immédiatement.\n- ETFs ou fonds indiciels : idéal pour commencer en bourse à long terme.\n- Immobilier locatif ou SCPI : plus complexe mais très efficace sur 10 ans.`;
+    }
+
+    if (containsAny(['merci', 'super', 'genial', 'top', 'cool', 'excellent', 'bravo', 'nickel'])) {
+      return `Avec plaisir ! C'est pour ça que je suis là.\n\nN'hésitez pas à revenir si vous avez d'autres questions sur vos finances. Rappelez-vous : votre solde actuel est de ${soldeStr} et votre épargne nette s'élève à ${epargneNetteStr}.\n\nContinuez comme ça et vous atteindrez vos objectifs financiers !`;
+    }
+
+    if (containsAny(['qui es tu', 'qui etes vous', 'c est quoi', 'keskestu', 'createur', 'cree par', 'application'])) {
+      return `Je suis SamaCoach, l'intelligence artificielle financière intégrée dans l'application GestFina.\n\nMon rôle est de vous aider à mieux comprendre vos dépenses, optimiser vos budgets et prendre de meilleures décisions financières au quotidien.\n\nJ'ai accès à vos données financières en temps réel et je les analyse pour vous donner des conseils personnalisés. Votre solde actuel de ${soldeStr} est par exemple sur mon radar.`;
+    }
+    if (containsAny(['dettes', 'consolidation', 'remboursement'])) {
+      return `Consolider vos dettes peut simplifier vos paiements et réduire les intérêts. Commencez par lister chaque dette, le taux d'intérêt et le montant restant. Priorisez celles avec les taux les plus élevés. Une fois consolidées, vous pourriez économiser jusqu'à 5-10% sur vos frais annuels.`;
+    }
+
+    if (containsAny(['score', 'credit', 'cote', 'fichier', 'historique'])) {
+      return `Votre score de crédit influence vos capacités d'emprunt. Un bon score (au-dessus de 700) vous donne accès à des taux plus bas. Pour l'améliorer, payez toujours vos factures à temps, réduisez votre utilisation de crédit en dessous de 30% et évitez les demandes de crédit multiples.`;
+    }
+
+    if (containsAny(['stress', 'anxiété', 'mental', 'santé mentale'])) {
+      return `Le stress financier est réel. Prenez un moment pour respirer, puis établissez un plan d'action simple : identifiez le poste qui cause le plus d'inquiétude, fixez un petit objectif d'économie (ex. 20€ par mois) et suivez vos progrès. Parler à un conseiller ou à un proche peut aussi aider à alléger la charge mentale.`;
+    }
+
+    if (containsAny(['famille', 'enfants', 'budget famille', 'dépenses familiales'])) {
+      return `Gérer un budget familial nécessite de synchroniser les dépenses de tous. Créez une catégorie "Famille" et allouez-y un montant mensuel pour les besoins communs (courses, activités, éducation). Impliquez chaque membre dans le suivi pour plus de transparence et d'engagement.`;
+    }
+
+    if (containsAny(['eco', 'environnement', 'vert', 'durable', 'éco'])) {
+      return `Adopter des gestes éco-responsables peut aussi économiser de l'argent : privilégiez les transports en commun ou le covoiturage, réduisez le gaspillage alimentaire, et choisissez des produits réutilisables. Même de petites économies s'additionnent sur le long terme.`;
+    }
+
+    
+
+    if (containsAny(['fin du mois', 'fin de mois', 'bilan mensuel'])) {
+      return `En fin de mois, c'est le bon moment pour faire le point !\n\nBilan rapide :\n- Revenus : `+totalIncomeStr+`\n- Depenses : `+totalExpensesStr+`\n- Epargne nette : `+epargneNetteStr+`\n- Solde : `+soldeStr+`\n\nSi vous etes dans le vert, envisagez de virer une partie vers votre livret ce soir !`;
+    }
+
+    if (containsAny(['mariage', 'noces', 'ceremonie', 'fiancaille', 'conjoint'])) {
+      return `Un mariage coute en moyenne 10 000 a 20 000 euros. Commencez a epargner 18 a 24 mois a l'avance. Avec votre epargne nette de `+epargneNetteStr+`, calculez combien mettre de cote chaque mois et creez un budget dedie dans GestFina.`;
+    }
+
+    if (containsAny(['etudes', 'universite', 'fac', 'formation', 'diplome', 'cpf'])) {
+      return `Investir dans l'education est toujours rentable ! Meme 30 euros par mois pendant 18 ans cree un capital solide pour vos enfants. Si c'est pour vous, regardez les formations eligibles au CPF. Votre solde de `+soldeStr+` est une base solide.`;
+    }
+
+    if (containsAny(['heritage', 'succession', 'notaire', 'testament', 'donation'])) {
+      return `Recevoir un heritage ou planifier une succession necessite une strategie. Placez 60 a 70% dans un support securise (livret, assurance-vie) et 20 a 30% pour des projets. Consultez un notaire pour optimiser la fiscalite.`;
+    }
+
+    if (containsAny(['assurance', 'garantie', 'sinistre', 'couverture'])) {
+      return `Verifiez au moins une fois par an vos contrats d'assurance (auto, habitation, sante). Regrouper vos assurances chez un meme assureur peut vous faire economiser 10 a 20% sur vos primes annuelles.`;
+    }
+
+    if (containsAny(['immobilier', 'proprietaire', 'achat immobilier', 'bien immobilier'])) {
+      return `Devenir proprietaire necessite 3 points cles :\n- Apport : idealement 10 a 20% du prix du bien.\n- Mensualite : max 33% de vos revenus (`+totalIncomeStr+`).\n- Epargne de precaution : 3 a 6 mois de charges de cote apres l'achat.\n\nVotre solde de `+soldeStr+` est un bon depart.`;
+    }
+
+    if (containsAny(['transfert', 'western union', 'wave', 'orange money', 'virement international'])) {
+      return `Pour les transferts internationaux, comparez les frais ! Wise, Remitly ou Wave sont souvent moins chers que Western Union. Des frais de 3 a 5% sur chaque envoi representent une grosse somme sur l'annee.`;
+    }
+
+    if (containsAny(['decouvert', 'agios', 'facilite de caisse'])) {
+      return `Un decouvert peut depanner ponctuellement mais attention aux agios (15 a 20% APR) ! Si vous etes regulierement a decouvert, vos depenses (`+totalExpensesStr+`) depassent vos revenus (`+totalIncomeStr+`). Analysons ensemble ou couper.`;
+    }
+
+    if (containsAny(['neo banque', 'revolut', 'n26', 'changer de banque'])) {
+      return `Les neo-banques (Revolut, N26, Orange Bank) proposent souvent des comptes gratuits avec d'excellents services. Si votre banque actuelle vous coute plus de 5 euros par mois sans contrepartie, il est peut-etre temps de changer !`;
+    }
+
+    if (containsAny(['inflation', 'pouvoir achat', 'tout est cher', 'prix augmente'])) {
+      return `L'inflation erode votre pouvoir d'achat. Si elle est a 5%, votre argent perd 5% de valeur par an sur un compte courant.\n\nLa riposte : Livret A pour l'epargne de precaution, ETFs pour le long terme. Ne laissez pas votre solde de `+soldeStr+` perdre en valeur !`;
+    }
+
+    if (containsAny(['prime', 'bonus', 'treizieme mois', 'gratification'])) {
+      return `Recevoir une prime ? Appliquez cette repartition :\n- 50% : Epargne ou remboursement accelere de dette.\n- 30% : Projet plaisir planifie.\n- 20% : Libre, sans culpabilite.\n\nVotre epargne nette de `+epargneNetteStr+` peut ainsi progresser serieusement.`;
+    }
+
+    if (containsAny(['etf', 'tracker', 'msci world', 'sp500', 'fonds indiciel'])) {
+      return `Les ETFs sont l'outil prefere des investisseurs particuliers : diversifies, peu couteux et performants. Avec 50 a 100 euros par mois investis regulierement depuis votre epargne nette de `+epargneNetteStr+`, l'effet de capitalisation peut creer un capital solide sur 10 a 20 ans.`;
+    }
+
+    if (containsAny(['colocation', 'coinhabitation', 'partager logement', 'louer chambre'])) {
+      return `La colocation peut diviser votre loyer par 2 ou 3 ! Avec les charges economisees, votre epargne nette de `+epargneNetteStr+` augmenterait significativement. C'est une solution temporaire tres efficace pour atteindre un objectif financier plus vite.`;
+    }
+
+    if (containsAny(['minimalisme', 'moins consommer', 'sobriete', 'essentiel'])) {
+      return `Le minimalisme financier, c'est acheter moins mais mieux. Pour chaque achat, posez-vous : ai-je vraiment besoin de cela ? Puis-je trouver moins cher ou d'occasion ? Votre solde de `+soldeStr+` peut grossir rapidement juste en reduisant les achats impulsifs.`;
+    }
+
+
+    if (containsAny(['chomage', 'licencie', 'perdu emploi', 'sans emploi', 'pole emploi', 'chomeur'])) {
+      return `Perdre son emploi est une epreuve difficile, mais c'est aussi un moment pour reorganiser ses finances.\n\nPremier reflexe : reduisez toutes les depenses non essentielles immediatement. Votre solde de `+soldeStr+` doit etre protege. Listez vos charges fixes incompressibles et identifiez ce qui peut etre suspendu (abonnements, loisirs) pour tenir plusieurs mois.`;
+    }
+
+    if (containsAny(['retraite anticipee', 'fire', 'liberte financiere', 'ne plus travailler', 'independance financiere'])) {
+      return `La liberte financiere (methode FIRE) consiste a epargner et investir suffisamment pour que vos revenus passifs couvrent vos depenses. La regle du 4% dit que vous pouvez retirer 4% de votre capital chaque annee sans l'epuiser.\n\nVos depenses sont de `+totalExpensesStr+`. Pour etre financierement libre, visez un capital d'environ 25 fois ce montant annuel. Commencez par maximiser votre epargne nette de `+epargneNetteStr+` chaque mois.`;
+    }
+
+    if (containsAny(['energie', 'electricite', 'gaz', 'facture energie', 'chauffage'])) {
+      return `Les factures d'energie sont l'un des postes les plus optimisables du budget !\n\n3 astuces pour les reduire :\n- Baissez le chauffage de 1 degre = 7% d'economies sur la facture.\n- Changez pour un fournisseur moins cher (comparez sur un comparateur en ligne).\n- Investissez dans des multiprises avec interrupteur pour eliminer les veilles electroniques.\n\nMeme 20 euros economises par mois, c'est 240 euros de plus dans votre epargne annuelle !`;
+    }
+
+    if (containsAny(['enfant', 'bebe', 'grossesse', 'naissance', 'accouchement', 'puericulture'])) {
+      return `L'arrivee d'un enfant est une grande joie, mais aussi un changement financier majeur !\n\nPrevoyez en avance :\n- Un budget puericulture realiste (poussette, lit, vetements...).\n- Les aides auxquelles vous avez droit (CAF, conge parental, prime de naissance).\n- Une epargne dediee a l'avenir de votre enfant (assurance-vie, PEA junior).\n\nVotre solde actuel de `+soldeStr+` est votre point de depart pour ces preparations.`;
+    }
+
+    if (containsAny(['divorce', 'separation', 'rupture', 'partage des biens', 'ex'])) {
+      return `Une separation est souvent couteuse financierement. Pensez a plusieurs choses :\n- Separez immediatement vos comptes bancaires joints.\n- Faites le point sur les dettes communes (qui doit quoi).\n- Consultez un conseiller juridique pour la repartition des biens.\n\nVotre bilan financier personnel montre un solde de `+soldeStr+`. Partir de cette base claire est essentiel pour repartir sur de bonnes bases.`;
+    }
+
+    if (containsAny(['side project', 'revente', 'vendre en ligne', 'marketplace', 'leboncoin', 'vinted', 'ebay'])) {
+      return `Vendre des objets inutilises est l'un des moyens les plus rapides de generer du cash sans effort !\n\nLeboncoin, Vinted, Facebook Marketplace : chaque objet inutile chez vous est de l'argent potentiel. Une personne moyenne peut generer 200 a 500 euros en faisant le tri chez elle. Cet argent peut directement renforcer votre epargne nette de `+epargneNetteStr+`.`;
+    }
+
+    if (containsAny(['abonnement salle', 'gyms', 'app sport', 'fitness app', 'peloton', 'mycoach'])) {
+      return `Un abonnement fitness non utilise est l'une des depenses les plus courantes gatement ! Avant de renouveler, verifiez : y etes-vous alle au moins 8 fois ce mois ?\n\nSi non, il existe d'excellentes alternatives gratuites : YouTube (chaines fitness), running en plein air, applications gratuites. Chaque euro economise augmente votre solde de `+soldeStr+`.`;
+    }
+
+    if (containsAny(['delegation', 'externaliser', 'sous-traiter', 'faire appel', 'prestataire', 'service'])) {
+      return `Externaliser certaines taches peut parfois etre rentable ! La question est : le temps que vous passez vaut-il plus que le cout du service ?\n\nPar exemple, si votre temps vaut 30 euros de l'heure et qu'un livreur vous coute 5 euros, c'est un choix rationnel. Mais si cela devient une habitude, impactant vos depenses de `+totalExpensesStr+`, alors budgetisez-le explicitement dans GestFina.`;
+    }
+
+    if (containsAny(['renegocier', 'ren�gocier', 'taux credit', 'rachat credit', 'refinancer'])) {
+      return `Ren�gocier votre credit immobilier ou consommation peut vous faire economiser des milliers d'euros !\n\nSi les taux ont baisse depuis votre emprunt initial, consultez votre banque ou un courtier pour un rachat de credit. Meme 0,5% de reduction sur un emprunt de 150 000 euros = economies de plusieurs milliers d'euros sur la duree totale.`;
+    }
+
+    if (containsAny(['renouveler', 'contrat', 'negocier abonnement', 'meilleur tarif', 'promo'])) {
+      return `Renegocier vos contrats est une habitude financiere tres rentable !\n\nAppelez votre fournisseur internet, votre operateur telephone, votre assureur une fois par an avec la meme phrase : "J'ai une meilleure offre ailleurs, que pouvez-vous faire pour moi ?" Vous obtiendrez presque toujours une reduction ou une offre amelioree. Sur un an, cela peut representer 100 a 300 euros d'economies.`;
+    }
+
+    if (containsAny(['micro epargne', 'arrondi', 'spare change', 'tirelire intelligente', 'pennies'])) {
+      return `La micro-epargne par arrondi est une technique puissante pour epargner sans s'en rendre compte !\n\nCertaines applications arrondissent chaque depense a l'euro superieur et mettent la difference de cote. Avec vos depenses de `+totalExpensesStr+`, meme 50 centimes par transaction peuvent generer plusieurs dizaines d'euros d'epargne supplementaire par mois.`;
+    }
+
+    if (containsAny(['calendrier financier', 'planification', 'calendrier', 'echeancier', 'planning'])) {
+      return `Creer un calendrier financier mensuel est une des meilleures pratiques de gestion budgetaire !\n\nNotez les dates de toutes vos echeances (loyer, abonnements, factures, remboursements) sur un calendrier. Cela evite les oublis, les penalites de retard et vous donne une vision claire de votre tresorerie. Votre solde de `+soldeStr+` sera ainsi toujours maitrise.`;
+    }
+
+    return `Je suis SamaCoach, votre expert financier personnel, et je veille sur vos comptes !\n\nVotre solde actuel est de ${soldeStr}.\n\nJe suis capable de répondre à de nombreuses questions, par exemple :\n- "Quel est mon bilan financier ce mois-ci ?"\n- "Astuces pour économiser sur la nourriture"\n- "Puis-je m'offrir un voyage ce mois-ci ?"\n- "Comment investir mes premiers 500 euros ?"\n- "J'ai fait une dépense stupide, que faire ?"\n\nDites-moi ce qui vous préoccupe, je suis là pour vous aider.`;
   }
 }
